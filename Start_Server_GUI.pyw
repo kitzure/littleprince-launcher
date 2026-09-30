@@ -9,11 +9,9 @@ is on, whether the hosts redirect is active, how many requests the games have
 made, and the live log - and it stops the server and reverts the hosts file when
 you close the window.
 
-The WINDOW itself is launcher_ui.py at the root of the pack, which the macOS
-launcher (macos/launcher_gui.py) builds its window from too: one presentation
-layer, two backends.  What is in this file is the Windows backend - the hosts
-file, the port-80 admin check and the servers - plus the entry point Start.bat
-runs.
+The WINDOW itself is launcher_ui.py at the root of the pack. This file contains
+the Windows backend - the hosts file, the port-80 admin check and the servers -
+plus the entry point Start.bat runs.
 
 Run it by double-clicking  Start_Server_GUI.pyw  (or: python Start_Server_GUI.pyw)
 
@@ -478,8 +476,7 @@ def fetch_pack(urls, dest, log=print, on_progress=None):
 
 # ──────────────────────── the launcher's own words ───────────────────────────
 # Everything the Windows launcher draws is named here, so the language badge
-# switches the whole window and not just the games behind it.  (macOS words live
-# in its own backend: the shared window in launcher_ui.py has none of these.)
+# switches the whole window and not just the games behind it.
 TR = {
     "en": {
         "play": "Play",

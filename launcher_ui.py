@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-launcher_ui.py - the one window both Little Prince launchers draw.
+launcher_ui.py - the Windows Little Prince launcher window.
 ==================================================================
 
-This is the launcher's presentation layer, and it is the only copy of it.  Both
-entry points build their window from here:
+This is the launcher's presentation layer. The Windows entry point builds its
+window from here:
 
     Start_Server_GUI.pyw          WindowsBackend   hosts redirect, port 80, admin
-    macos/launcher_gui.py         MacBackend       no hosts, no admin, 8950/8081/
-                                                     8900/8443, Pepper Flash runtime
 
 Everything the user sees - the title strip (hamburger, status dot, the URL, the
 account badge, the ZH badge), the hero banner (the game's key art beside the
@@ -17,7 +15,7 @@ starfield panel with the title, the tagline and the game tabs), the gold hairlin
 the live status line, the stats row with "Test the connection", the monospace log
 console with its scrollbar, the footer, the sliding hamburger drawer, the settings
 page and the download progress windows - lives in this file and nowhere else, so a
-change to the window cannot land on one platform only.
+window changes remain separate from server and game logic.
 
 A platform file supplies a BACKEND object with the interface below and calls
 ``launcher_ui.run(backend)``.  The window never touches a server, a port or a
@@ -43,8 +41,8 @@ Servers
     stats()             [(label, value), ...]   the stats row, left to right
     footer()            str    the line under the log
     close()             bool   True lets the window go (stop what you must first)
-    background_start    bool   True: run start()/stop() on a worker thread (macOS
-                               spawns subprocesses; Windows' start is in-process)
+    background_start    bool   True: run start()/stop() on a worker thread
+                               (Windows startup is in-process)
 
 Menu, language, admin
     menu()              [(section_label_or_None, [(label, callable, enabled)])]
@@ -90,8 +88,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 # ──────────────────────────────── the palette ─────────────────────────────────
-# One dark theme, drawn with plain tk widgets so it reads the same on Windows,
-# X11 and macOS - a ttk theme is what fails to paint on the old macOS Tk.
+# One dark theme, drawn with plain tk widgets on Windows and the X11 test host.
 
 BG, FG, DIM = "#101014", "#f2f2f2", "#9a9aa5"
 PANEL, LINE = "#0b0b0b", "#26262c"
@@ -138,70 +135,10 @@ def write_language(path, which):
         return False
 
 
-# ───────────────────────────── buttons that fit in ────────────────────────────
-# macOS draws its own button chrome and ignores a tk.Button's bg, so a dark button
-# there comes out white with near-white text on it.  A Label honours bg and fg on
-# every platform, so on macOS the same button is a Label wearing the same options,
-# with the hover and the disabled state done by hand.  Both kinds answer the same
-# .configure(state=..., fg=..., text=...) calls, which is all the drawer and the
-# action rows ever ask of them.
-
-class _LabelButton(tk.Label):
-    """A tk.Button's options on a tk.Label, for macOS."""
-
-    def __init__(self, parent, **kw):
-        self.command = kw.pop("command", None)
-        kw.pop("relief", None)
-        kw.pop("bd", None)
-        kw.pop("highlightthickness", None)
-        self.active_bg = kw.pop("activebackground", None)
-        self.active_fg = kw.pop("activeforeground", None)
-        self.idle_bg = kw.get("bg")
-        self.idle_fg = kw.get("fg")
-        if self.active_bg is None:
-            self.active_bg = GOLD_DIM
-        if self.active_fg is None:
-            self.active_fg = GOLD
-        kw.setdefault("cursor", "hand2")
-        tk.Label.__init__(self, parent, **kw)
-        self.bind("<Button-1>", self._clicked)
-        self.bind("<Enter>", self._entered)
-        self.bind("<Leave>", self._left)
-
-    def _live(self):
-        return str(self.cget("state")) != "disabled"
-
-    def _clicked(self, _event):
-        if self._live() and self.command is not None:
-            self.command()
-
-    def _entered(self, _event):
-        if self._live():
-            tk.Label.configure(self, bg=self.active_bg, fg=self.active_fg)
-
-    def _left(self, _event):
-        if self._live():
-            tk.Label.configure(self, bg=self.idle_bg, fg=self.idle_fg)
-
-    def configure(self, **kw):
-        """Keep the idle colours in step, so the hover puts them back right."""
-        if "command" in kw:                        # a Label has no -command option
-            self.command = kw.pop("command")
-        if "bg" in kw:
-            self.idle_bg = kw["bg"]
-        if "fg" in kw:
-            self.idle_fg = kw["fg"]
-            tk.Label.configure(self, disabledforeground=ROW_OFF)
-        tk.Label.configure(self, **kw)
-
-    config = configure
-
-
 def set_button_state(btn, enabled):
     """Grey a drawer row or an action button out, or put it back.
 
-    One helper for both kinds of button, and the wording of the grey is the
-    launcher's, so the two platforms cannot drift apart.
+    Keep the disabled appearance consistent across drawer rows and action buttons.
     """
     try:
         btn.configure(state="normal" if enabled else "disabled",
@@ -218,8 +155,7 @@ def set_button_text(btn, text):
 
 
 # ───────────────────────── the shared progress window ─────────────────────────
-# The Windows launcher shows one of these for each download it makes and the macOS
-# launcher for the one it makes; the layout is the same window either way.
+# The Windows launcher shows one of these for each download it makes.
 
 class ProgressDialog:
     def __init__(self, ui, title, heading, length=460, cancel=None, warn=False):
@@ -262,93 +198,11 @@ class ProgressDialog:
             pass
 
 
-# ─────────────────────── a list of things you can press ───────────────────────
-# The macOS launcher's "Download the game files" picker: one row per game with its
-# live state, and a press on a row fetches that game.  It lives here with the rest
-# of the presentation so the platform file only decides what the rows say.
-
-class PickerWindow:
-    def __init__(self, ui, title, subtitle, rows, on_pick, state):
-        """`rows` [(key, label)], `on_pick(key)`, and `state()` -> (dict, footer).
-
-        `state()` is called once a second on the window's own thread; it returns
-        {key: text} or {key: (text, colour)} plus an optional footer string.  It
-        must not block - the window it feeds is the launcher itself.
-        """
-        import tkinter as tk
-        self.ui = ui
-        self.state = state
-        self.rows = rows
-        self.on_pick = on_pick
-        self.alive = {'on': True}
-        win = self.win = tk.Toplevel(ui.root)
-        win.title(title)
-        win.configure(bg=BG)
-        win.transient(ui.root)
-        win.resizable(False, False)
-        win.protocol('WM_DELETE_WINDOW', self.close)
-
-        tk.Label(win, text=title, bg=BG, fg=FG, font=(ui.font, 13, 'bold')).pack(
-            anchor='w', padx=16, pady=(14, 0))
-        tk.Label(win, text=subtitle, bg=BG, fg=DIM, font=(ui.font, 9)).pack(
-            anchor='w', padx=16)
-        box = tk.Frame(win, bg=PANEL, highlightbackground=LINE, highlightthickness=1)
-        box.pack(fill='x', padx=16, pady=10)
-        self.cells = {}
-        for key, label in rows:
-            row = tk.Frame(box, bg=PANEL, cursor='hand2')
-            row.pack(fill='x')
-            name = tk.Label(row, text=label, width=30, anchor='w', bg=PANEL, fg=FG,
-                            font=(ui.font, 10))
-            name.pack(side='left', padx=(8, 0), pady=5)
-            value = tk.Label(row, text='checking...', bg=PANEL, fg=AMBER,
-                             font=(ui.font, 10))
-            value.pack(side='left')
-            for widget in (row, name, value):
-                widget.bind('<Button-1>', lambda _e, k=key: self.on_pick(k))
-            self.cells[key] = value
-
-        foot = tk.Frame(win, bg=BG)
-        foot.pack(fill='x', padx=16, pady=(0, 14))
-        self.footer = tk.StringVar(value='')
-        tk.Label(foot, textvariable=self.footer, bg=BG, fg=DIM,
-                 font=(ui.font, 9)).pack(side='left')
-        ui.button(foot, text='Close', command=self.close, bg=PANEL, fg=FG,
-                  font=(ui.font, 10)).pack(side='right')
-        self.live()
-
-    def close(self, *_e):
-        self.alive['on'] = False
-        try:
-            self.win.destroy()
-        except Exception:                                             # noqa: BLE001
-            pass
-
-    def live(self):
-        if not self.alive['on']:
-            return
-        try:
-            rows, footer = self.state()
-        except Exception as exc:                                      # noqa: BLE001
-            rows, footer = {}, 'could not check: %s' % exc
-        for key, widget in self.cells.items():
-            value = rows.get(key)
-            if value is None:
-                widget.configure(text='checking...', fg=DIM)
-            elif isinstance(value, tuple):
-                widget.configure(text=value[0], fg=value[1])
-            else:
-                widget.configure(text=value, fg=DIM)
-        if footer:
-            self.footer.set(footer)
-        self.win.after(1000, self.live)
-
-
 # ───────────────────────────── the settings page ─────────────────────────────
 
 def open_settings_window(ui, title, radios, entries, on_save, values=None,
                          save_label=None, close_label=None):
-    """The settings page, built from a description so both platforms share it.
+    """The settings page, built from the Windows backend's description.
 
     `radios`  [(heading, [(label, value), ...])] - one group of radio buttons.
     `entries` [(heading, [(label, width), ...])] | None - one group of text fields.
@@ -428,7 +282,7 @@ def open_settings_window(ui, title, radios, entries, on_save, values=None,
 # ───────────────────────────────── the window ─────────────────────────────────
 
 class Window:
-    """The launcher window.  Built once, from a backend, for both platforms."""
+    """The launcher window, built from the Windows backend."""
 
     def __init__(self, root, backend):
         self.root = root
@@ -470,8 +324,6 @@ class Window:
         present = set(tkfont.families(self.root))
         if os.name == "nt":
             first = ["Microsoft JhengHei", "Microsoft YaHei", "MingLiU"]
-        elif sys.platform == "darwin":
-            first = ["PingFang TC", "Heiti TC", "Songti TC", "STHeiti"]
         else:
             first = ["Noto Sans CJK TC", "Noto Sans CJK SC", "WenQuanYi Micro Hei",
                      "AR PL UMing TW"]
@@ -485,7 +337,7 @@ class Window:
         return candidates[0] if len(present) <= 1 else "Segoe UI"
 
     def button(self, parent, text="", command=None, accent=False, **kw):
-        """A button that looks the same on every platform (see _LabelButton)."""
+        """A native Tk button with the Windows launcher's appearance."""
         kw = dict(kw)
         kw.setdefault("font", (self.font, 10, "bold" if accent else "normal"))
         kw.setdefault("padx", 12)
@@ -505,8 +357,6 @@ class Window:
         # deliberately NOT highlightthickness: Tk's own default (1 on a Button) is
         # what the Windows window has always drawn, and the ring is part of its look
         kw.setdefault("cursor", "hand2")
-        if sys.platform == "darwin":
-            return _LabelButton(parent, text=text, command=command, **kw)
         return tk.Button(parent, text=text, command=command, **kw)
 
     def chrome(self, key):
@@ -843,7 +693,7 @@ class Window:
 
     # ── an optional extra row of the backend's own actions ───────────────────
     def _build_actions(self):
-        """Only built when the backend has actions of its own (macOS does).
+        """Only built when the backend has actions of its own.
 
         The row is a parameter, not a second window: with no actions there is no
         row at all and the window is the one it has always been.
@@ -1017,8 +867,7 @@ class Window:
     # ── the buttons that drive the servers ──────────────────────────────────
     def start_clicked(self):
         if getattr(self.backend, "background_start", False):
-            # macOS starts subprocesses over a few seconds; the old window did it
-            # on a worker too, and the refresh loop shows the result.
+            # Slow backend operations run off-thread; refresh shows the result.
             threading.Thread(target=self._guard(self.backend.start),
                              daemon=True).start()
             return
@@ -1296,8 +1145,7 @@ class Window:
         return 0
 
 
-# The window's own few words.  The platform's wording lives in its backend (the
-# Windows one is translated by its own tr() table; macOS has its own).
+# The window's own few words. The Windows backend uses its own tr() table.
 CHROME = {
     "save": "Save",
     "close": "Close",
@@ -1305,7 +1153,7 @@ CHROME = {
 
 
 def run(backend):
-    """Build the window for `backend` and run it.  The one entry point for both."""
+    """Build the window for the Windows `backend` and run it."""
     root = tk.Tk()
     window = Window(root, backend)
     return window.main()
