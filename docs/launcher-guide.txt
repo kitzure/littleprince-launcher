@@ -1,0 +1,128 @@
+LITTLE PRINCE LAUNCHER — WINDOWS v1.0
+Setup, how it works and support guide
+
+Website: https://kitzure.github.io/littleprince-launcher/
+Repository: https://github.com/kitzure/littleprince-launcher
+
+QUICK START
+1. Download the Windows ZIP and extract it into a new writable folder.
+   Do not launch it inside the ZIP.
+2. Install Python 3 with Tkinter if needed, using the standard Windows
+   installer from https://www.python.org/downloads/windows/.
+   Enable its Python/PATH options.
+3. Double-click Start.bat. Accept the administrator prompt for the
+   hosts redirect and port-80 service.
+4. Choose a game and press Play. Allow the local portal to download
+   the Flash-capable game browser and missing game files when prompted.
+5. Create a local account through the launcher's Accounts site, use it
+   in the game, and keep the launcher open. Close the window normally
+   when finished.
+For original CD installations, back up the original files first and
+use the launcher's patch-files menu for the supplied patches.
+
+SUPPORTED TITLES
+- LP1: Little Prince
+- LP2: Starwish Legend
+- LP3: Prince Adventure
+- LPO: Little Prince Online
+These titles have local launcher/server integration. Support is not
+an assurance that every original mode or service is complete.
+The newer Starwish Party app and LP4 are not supported. The website's
+modern character artwork does not change the supported game list.
+
+HOW IT WORKS
+The launcher temporarily redirects relevant classic-game hostnames
+to this computer and starts local services for the games' AMF calls.
+Default ports:
+- 80: CD-game service and hosts redirect.
+- 8080: game portal, account website and online-game gateway.
+- 8443: local multiplayer relay when enabled.
+Implemented game requests are handled locally; supported account,
+progress and score records are saved in the installation folder.
+Supplied patches adapt classic-client license checks and selected
+client behavior for this local setup.
+Normal settings answer unknown services locally rather than sending
+them to the publisher. Game/browser downloads still use the internet.
+Normal shutdown stops services and removes the added hosts entries.
+After a forced termination, use Revert the hosts redirect.
+
+LOCAL FEATURES
+- Local accounts, profiles and available worlds.
+- Supported progress saves and per-title leaderboards.
+- Friends/mail between local accounts, and an editable notice board.
+- Per-game mod presets/fields, normally applied at the next login.
+- Server status and request logs.
+- Lobby/room handling; full multiplayer behavior is not guaranteed.
+These are local records, not the publisher's or a school's accounts.
+
+REQUIREMENTS
+- Windows desktop/laptop; no guarantee for old Windows or ARM/emulation.
+- Python 3 with Tkinter; Python is not bundled in the ZIP.
+- Administrator rights for hosts redirection and port 80.
+- Free local ports and a writable installation folder.
+- Internet and additional disk space for missing browser/game files.
+  The launcher ZIP is not the complete game collection; individual
+  downloads can be hundreds of megabytes.
+- Game copies you legally own. No official key/subscription is supplied.
+
+DATA AND SAFETY
+Back up the installation folder before updating. Do not publish its
+personal account files, passwords or unredacted logs.
+Create a separate local password; do not reuse email/school passwords.
+Follow the Accounts site's validation for the legacy password fields.
+Servers may listen on network interfaces, not only localhost.
+Keep Windows Firewall enabled. Do not forward the local service ports
+on a router or expose this installation to the public internet.
+Installer sources are Catbox, Pixeldrain or trusted self-hosted HTTP(S).
+Google Drive installer URLs and redirects are disabled.
+
+LIMITATIONS
+- The launcher is Windows-only, not a macOS/Linux/Android/iOS app.
+- Legacy Flash compatibility varies. The offered game browser is the
+  compatibility path; Ruffle may render or behave differently.
+- Local server recreation is partial. Some original functions, asset
+  requests and multiplayer modes may differ or fail.
+- No official matchmaking, school-account import, subscription or
+  cloud account synchronization is provided.
+- Offline play is not guaranteed for every mode or missing asset.
+- This project is not affiliated with the original publisher.
+
+TROUBLESHOOTING
+Python missing: install the standard Windows Python build and enable
+its PATH options. Check Tkinter with: python -m tkinter
+Admin prompt cancelled: rerun Start.bat and accept the prompt for the
+full hosts/CD setup; port 80 and redirects may fail without elevation.
+Port conflict: close other launchers/apps using that port. Read the log.
+Advanced local testing: python Start_Server_GUI.pyw --no-hosts --port 18080
+That test command does not enable the normal CD hostname redirect.
+Official site opens: keep the launcher running, verify hosts redirect,
+and use the game browser. DNS-over-HTTPS can bypass the redirect.
+Download failure: check network, disk and logs; select a permitted
+mirror or trusted self-hosted pack. A launcher mirror is not a
+replacement for a broken individual game-pack URL.
+Redirect remains after a crash: use Revert the hosts redirect. Back up
+the hosts file before manual edits.
+Mod missing: check the title/account, then log out and enter the game
+again. Changes are normally sent by the local server at login.
+Report unresolved issues at the repository's Issues page. Remove
+personal details and passwords from log excerpts before posting.
+
+DOWNLOAD AND INTEGRITY
+Version: Windows v1.0
+Filename: launcherv1.0.zip
+Size: 12,406,881 bytes (about 12.4 MB)
+Primary:
+https://github.com/kitzure/littleprince-launcher/releases/download/release/launcherv1.0.zip
+Identical backup:
+https://files.catbox.moe/dhzr91.zip
+SHA-256:
+f10a6ea266dd290fcac9aebb0b73cf5f0a97ecff597ecfd0739a374f7df56365
+PowerShell check:
+Get-FileHash .\launcherv1.0.zip -Algorithm SHA256
+
+RIGHTS AND OWNERSHIP
+An unofficial educational/preservation project. Original games,
+characters, artwork, music and code belong to Starwish Little Prince
+Ltd. / Starwish Fair and their respective developers/rights holders.
+Use only game copies you legally own. Do not sell this package or use
+it to obtain games you do not own. Support official releases when available.

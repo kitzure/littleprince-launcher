@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff9ec">
+  <meta name="description" content="How to install Little Prince Launcher, which classic games it supports, how its local servers work, and important limitations.">
+  <title>Setup & Support Guide — Little Prince Launcher</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body class="guide-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Little Prince Launcher home">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/></svg>
+      <span>Little Prince <small>COMMUNITY LAUNCHER</small></span>
+    </a>
+    <nav aria-label="Main navigation"><a href="./">Home</a><a href="guide.html" aria-current="page">Guide</a><a href="https://github.com/kitzure/littleprince-launcher" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a></nav>
+  </header>
+
+  <main id="main" class="guide-main">
+    <div class="guide-intro">
+      <span class="eyebrow">WINDOWS v1.0 / SETUP & SUPPORT</span>
+      <h1>A small guide to<br>getting started.</h1>
+      <p>What to install, what you can play, and what happens behind the launcher window. No guesswork about official servers or unsupported platforms.</p>
+      <div class="guide-actions"><a class="small-button" href="launcher-guide.txt" download>Download this guide <span aria-hidden="true">↓</span></a><button class="small-button quiet" type="button" data-print>Print / save as PDF</button><a class="small-button quiet" href="./">Back to download <span aria-hidden="true">↗</span></a></div>
+    </div>
+
+    <div class="guide-layout">
+      <details class="contents" open data-contents>
+        <summary>ON THIS PAGE</summary>
+        <nav aria-label="Guide contents"><a href="#quick-start">01 / Quick start</a><a href="#supported-games">02 / Supported games</a><a href="#how-it-works">03 / How it works</a><a href="#local-tools">04 / Local tools</a><a href="#requirements">05 / Requirements</a><a href="#safety">06 / Your data & safety</a><a href="#limitations">07 / Limitations</a><a href="#troubleshooting">08 / Troubleshooting</a><a href="#downloads">09 / Download details</a></nav>
+      </details>
+      <article class="guide-article" aria-label="Launcher setup and support guide">
+        <section id="quick-start">
+          <h2>01 / Quick start</h2>
+          <ol>
+            <li><strong>Download the Windows ZIP.</strong> Extract it into a new folder you can write to. Do not run the launcher inside the ZIP.</li>
+            <li><strong>Install Python 3 with Tkinter</strong> from <a href="https://www.python.org/downloads/windows/" target="_blank" rel="noopener noreferrer">python.org</a> if needed. Use the standard Windows installer and enable its Python/PATH options.</li>
+            <li><strong>Double-click <code>Start.bat</code>.</strong> Accept the administrator prompt so the launcher can set up the local hosts redirect and its port-80 server.</li>
+            <li><strong>Choose a game and press Play.</strong> The local portal opens. Let it download the publisher's Flash-capable browser and any missing game files when prompted.</li>
+            <li><strong>Create a local account</strong> through the launcher's Accounts site, then use that account in the game. Keep the launcher open while playing; close it normally when finished.</li>
+          </ol>
+          <p>Using an original CD installation instead? Back up its files first and use the launcher's patch-files menu for the supplied patches. This is separate from downloading a game through the portal.</p>
+        </section>
+
+        <section id="supported-games">
+          <h2>02 / Supported games</h2>
+          <p>The launcher targets these four classic titles. “Supported” describes the local launcher/server integration, not a guarantee that every original mode or service is complete.</p>
+          <div class="support-game" id="lp1"><span class="game-code">LP1</span><div><h3>Little Prince</h3><p>Classic game access through the portal, local account/progress handling and per-title mod presets. Patches for the original CD version are also included.</p></div></div>
+          <div class="support-game" id="lp2"><span class="game-code">LP2</span><div><h3>Starwish Legend</h3><p>The same local portal and account/progress integration, with game-specific fields and CD-version patches.</p></div></div>
+          <div class="support-game" id="lp3"><span class="game-code">LP3</span><div><h3>Prince Adventure</h3><p>Local accounts/progress, title-specific presets such as card unlocks, and CD-version patches.</p></div></div>
+          <div class="support-game" id="lpo"><span class="game-code">LPO</span><div><h3>Little Prince Online</h3><p>A local replacement server, account management, worlds, saves, local friends/mail and leaderboards. Lobby/room handling is included; full multiplayer behavior is not guaranteed.</p></div></div>
+          <div class="document-note"><p><strong>Not included:</strong> the newer Starwish Party app, LP4, official account synchronization, and macOS/Linux/mobile launcher builds. The website's modern artwork is a presentation choice, not support for the newer app.</p></div>
+        </section>
+
+        <section id="how-it-works">
+          <h2>03 / How it works</h2>
+          <div class="flow" aria-label="The game connects to local services, which save records on your computer"><strong>Classic game</strong><span aria-hidden="true">→</span><strong>Local game services</strong><span aria-hidden="true">→</span><strong>Your local records</strong></div>
+          <p>The old games expect the publisher's server addresses. The launcher temporarily redirects the relevant hostnames to your computer and starts local services that answer the games' AMF requests.</p>
+          <ul>
+            <li><strong>Port 80:</strong> the local CD-game service and hosts redirect.</li>
+            <li><strong>Port 8080:</strong> the game portal, account website and online-game gateway.</li>
+            <li><strong>Port 8443:</strong> the local multiplayer relay, when enabled.</li>
+          </ul>
+          <p>Local services handle the implemented login, progress, mail, friends and ranking requests. Supplied patches adapt the classic clients' license checks and selected client behavior for this local setup.</p>
+          <p>Normal launch settings answer unknown services locally instead of forwarding them to the publisher. Missing game/browser downloads still use the internet. This is <strong>not</strong> the publisher's official live service.</p>
+          <p>On a normal shutdown, the launcher stops its services and removes the hosts entries it added. If it was force-closed, use its <strong>Revert the hosts redirect</strong> command.</p>
+        </section>
+
+        <section id="local-tools">
+          <h2>04 / Local tools</h2>
+          <ul>
+            <li><strong>Accounts:</strong> create and manage local players, profiles and available worlds.</li>
+            <li><strong>Saves and rankings:</strong> record the supported progress/score fields, with scores separated by title.</li>
+            <li><strong>Friends, mail and notice board:</strong> use local accounts and edit the castle's notice board.</li>
+            <li><strong>Mods:</strong> choose the game first, then apply its supported presets or fields. Changes normally appear at the next game login.</li>
+            <li><strong>Status and logs:</strong> inspect running services and request messages in the launcher.</li>
+          </ul>
+          <p>These are features of your local installation. They do not import a school's or the publisher's existing account history.</p>
+        </section>
+
+        <section id="requirements">
+          <h2>05 / Requirements</h2>
+          <dl class="requirement-list">
+            <div><dt>Computer</dt><dd>A Windows desktop or laptop. Use a current Windows installation; compatibility with old Windows releases or ARM/emulation is not guaranteed.</dd></div>
+            <div><dt>Python</dt><dd>Python 3 with Tkinter. It is not bundled in the launcher ZIP. The normal python.org Windows installation includes Tkinter.</dd></div>
+            <div><dt>Permissions</dt><dd>Administrator rights for the hosts redirect and port-80 service. Free local ports are needed for the services above.</dd></div>
+            <div><dt>Downloads</dt><dd>Internet access for missing browser/game files. The small launcher ZIP is not the full game collection; individual client downloads may be hundreds of megabytes.</dd></div>
+            <div><dt>Storage</dt><dd>A writable folder with space for the launcher, downloaded clients and saves. Keep backups before replacing a game or launcher folder.</dd></div>
+            <div><dt>Game ownership</dt><dd>Use only copies you legally own. No official serial key, subscription or publisher account is supplied.</dd></div>
+          </dl>
+        </section>
+
+        <section id="safety">
+          <h2>06 / Your data & safety</h2>
+          <p>Accounts, supported saves and other local records are written into your installation folder. Back that folder up before updating or reinstalling, and never upload your personal account files with a bug report.</p>
+          <p>Use a <strong>separate local password</strong>, not your email, school or another service's password. The legacy game has short password-field limits; follow the Accounts site's validation.</p>
+          <p>The services can listen on network interfaces, not only localhost. Keep Windows Firewall enabled. <strong>Do not expose these ports to the public internet</strong> or forward them on your router; this is not a hardened public hosting service.</p>
+          <p>Installer sources use Catbox, Pixeldrain or custom HTTP(S) self-hosted URLs. Google Drive installer links and redirects are disabled.</p>
+        </section>
+
+        <section id="limitations">
+          <h2>07 / Limitations</h2>
+          <ul>
+            <li><strong>Windows launcher only.</strong> This website is mobile-readable; the games/launcher are not Android, iOS, macOS or Linux applications.</li>
+            <li><strong>Legacy Flash software.</strong> Use the offered game browser for compatibility. Ruffle is available for browser playback, but rendering and some modes may differ.</li>
+            <li><strong>Partial server recreation.</strong> Some original game functions, asset requests and multiplayer modes may not work exactly as they did on the official server.</li>
+            <li><strong>No official online service.</strong> Public matchmaking, school accounts, official subscriptions and cloud account synchronization are not provided.</li>
+            <li><strong>No universal offline promise.</strong> Missing assets need downloading; offline behavior depends on the installed files and game mode.</li>
+          </ul>
+          <p>This is an unofficial educational/preservation project. Original games, music, artwork and characters belong to Starwish Little Prince Ltd. / Starwish Fair and their respective developers. Do not sell this package or use it to obtain games you do not own.</p>
+        </section>
+
+        <section id="troubleshooting">
+          <h2>08 / Troubleshooting</h2>
+          <details class="faq"><summary>Start.bat says Python is missing</summary><p>Install Python from python.org using the standard Windows installer. Enable the Python/PATH options, then reopen the launcher. You can check that Tkinter is present with <code>python -m tkinter</code>.</p></details>
+          <details class="faq"><summary>The administrator prompt is cancelled</summary><p>Rerun <code>Start.bat</code> and accept the prompt if you want the full hosts/CD setup. Without elevation, port 80 and the hosts redirect may not work.</p></details>
+          <details class="faq"><summary>A server port is already in use</summary><p>Close a second launcher instance or another application using the same port. Check the log for the exact port. Advanced testing can use <code>python Start_Server_GUI.pyw --no-hosts --port 18080</code>, but that does not enable the CD games' normal hostname redirect.</p></details>
+          <details class="faq"><summary>The game opens the official website instead</summary><p>Keep the launcher running and check that its hosts redirect is active. Use the offered game browser. A browser's DNS-over-HTTPS setting may bypass the local redirect; disable it for this setup if necessary.</p></details>
+          <details class="faq"><summary>The game download fails</summary><p>Check your connection, free disk space and the launcher log. Try a permitted mirror or a trusted self-hosted pack URL through download settings. Changing the launcher download mirror does not replace a broken individual game pack.</p></details>
+          <details class="faq"><summary>Game domains still point to localhost after closing</summary><p>Reopen the launcher and use <strong>Revert the hosts redirect</strong>. A crash, forced termination or power loss can prevent normal cleanup. Back up the hosts file before making any manual changes.</p></details>
+          <details class="faq"><summary>A mod value does not appear in the game</summary><p>Confirm the selected title and account, then log out and re-enter that game. Mod changes are returned by the local server on login, not necessarily applied to a running session.</p></details>
+          <p>For unresolved problems, describe the game, the steps and the relevant log excerpt in <a href="https://github.com/kitzure/littleprince-launcher/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>. Remove account details, passwords and personal file paths first.</p>
+        </section>
+
+        <section id="downloads">
+          <h2>09 / Download details</h2>
+          <p><strong>Windows v1.0:</strong> <code>launcherv1.0.zip</code> · 12.4 MB. The GitHub release and the Catbox backup contain the same verified Windows-only ZIP.</p>
+          <div class="link-row"><a data-download href="https://github.com/kitzure/littleprince-launcher/releases/download/release/launcherv1.0.zip">Download Windows ZIP ↓</a><a href="https://files.catbox.moe/dhzr91.zip">Catbox backup ↗</a><a href="https://github.com/kitzure/littleprince-launcher/releases/tag/release">Release notes ↗</a></div>
+          <div class="checksum"><small>SHA-256 · WINDOWS v1.0</small><code id="sha256">f10a6ea266dd290fcac9aebb0b73cf5f0a97ecff597ecfd0739a374f7df56365</code><button type="button" data-copy-checksum aria-live="polite">Copy checksum</button></div>
+          <p>Optional integrity check in PowerShell: <code>Get-FileHash .\launcherv1.0.zip -Algorithm SHA256</code>. Compare the result with the value above. See also the <a href="checksums.txt" download>checksum text file</a>.</p>
+          <p>Website source and the launcher files are in the <a href="https://github.com/kitzure/littleprince-launcher" target="_blank" rel="noopener noreferrer">GitHub repository</a>. This guide covers the Windows v1.0 download linked here.</p>
+        </section>
+      </article>
+    </div>
+  </main>
+  <footer class="site-footer"><span>Unofficial community project. Original content belongs to its rights holders.</span><div><a href="./">Launcher home</a><a href="launcher-guide.txt" download>Download guide</a><a href="https://github.com/kitzure/littleprince-launcher">Source</a></div></footer>
+</body>
+</html>
