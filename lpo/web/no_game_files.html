@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Little Prince Online - download needed</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #000; color: #fff;
+         font: 15px/1.6 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  .wrap { max-width: 640px; margin: 12vh auto; padding: 0 24px; }
+  h1 { font-size: 22px; margin: 0 0 4px; font-weight: 600; }
+  p.lead { color: #9a9aa5; margin: 0 0 28px; }
+  ol { padding-left: 20px; margin: 0; }
+  li { margin-bottom: 14px; }
+  code, .path { font-family: Consolas, ui-monospace, monospace; font-size: 13px;
+                background: #16161a; border: 1px solid #26262c; border-radius: 6px;
+                padding: 2px 6px; color: #fff; }
+  .box { border: 1px solid #26262c; border-radius: 12px; padding: 18px 20px;
+         background: #0c0c0e; margin-top: 26px; }
+  .muted { color: #9a9aa5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Little Prince Online is not downloaded yet</h1>
+  <p class="lead">The local server is running, but the game files are not on this machine, so there is
+    nothing to play yet. Download them once and this page becomes the game.</p>
+
+  <ol>
+    <li>Back in the launcher, press <b>Play</b> on <b>Little Prince Online</b> again and choose
+        <b>Yes</b> when it offers the download.<br>
+        <span class="muted">It is about 900 MB, fetched once from the publisher, and it is kept in
+        <span class="path">lpo\game</span> afterwards.</span></li>
+    <li>Already have the game installed? Choose <b>No</b> at that prompt and point at its folder - it is
+        the one holding <code>index.swf</code> and <code>login.swf</code>.</li>
+    <li>Or drop the client files into <span class="path">lpo\game\</span>, or write the folder path on
+        its own line in <span class="path">lpo\game_dir.txt</span>.</li>
+  </ol>
+
+  <div class="box">
+    <div><b>Where the server looked</b></div>
+    <div class="muted" style="margin-top:6px">the package's <span class="path">lpo\game</span> folder, the saved choice, the
+      Windows uninstall entries for anything named &quot;prince&quot;, desktop and start-menu shortcuts, then
+      <span class="path">Program Files</span>, <span class="path">LOCALAPPDATA</span>,
+      <span class="path">Desktop</span>, <span class="path">Downloads</span> and <span class="path">Documents</span>.</div>
+  </div>
+</div>
+</body>
+</html>

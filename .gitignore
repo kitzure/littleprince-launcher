@@ -1,0 +1,50 @@
+# Publisher payload and downloaded runtime (not source code)
+cloud/
+browser/
+macos/runtime/
+lpo/game/
+lpo/avatar/
+games/
+*.swf
+*.zinc
+
+# Local player data and settings
+lpo/accounts.json
+lpo/profile.json
+lpo/mails.json
+lpo/friends.json
+lpo/pending.json
+lpo/notices.json
+lpo/notice_content/
+lpo/level_scores.json
+lpo/download-settings.json
+lpo/game_dir.txt
+lpo/web/avatars/
+lpo/captures/unreadable/
+uploads/
+
+# Credentials and private local publishing tools
+.env
+.env.*
+*.pem
+*.key
+tools/*drive*.py
+!tools/test_no_drive_downloads.py
+tools/ship*.py
+tools/final_ship*.py
+tools/patcher_file_id.txt
+
+# Logs, backups, caches and build output
+*.log
+*.bak
+*.bak-*
+*.bak.*
+*.part
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+Thumbs.db
+build/
+dist/
+*.zip

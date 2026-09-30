@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- The movie below is referenced as plain index.swf, so a host that serves this
+     page from a nested alias (/LP/Po/flash, /flash) resolved it against the wrong
+     directory and asked for /LP/Po/flash/index.swf - a 404 and a black stage.  The
+     game's files live at the root, so pin the base.  (Every other reference in this
+     page is already absolute, so nothing else moves.) -->
+<base href="/">
+<title>Little Prince Online</title>
+<style>
+  /* The game is an 800x600 Flash stage.  The plugin is never resized - changing a
+     Flash object's size mid-game restarts the movie - so the stage keeps its own
+     800x600 and is scaled as a whole, which keeps the 4:3 shape and never
+     stretches it.  Same dark chrome as the launcher's own screens. */
+  html, body { margin: 0; height: 100%; background: #0b0b0b; color: #e8e8ee;
+               font: 12px/1.5 "Segoe UI", "Microsoft JhengHei", system-ui, sans-serif; }
+  body { display: flex; flex-direction: column; height: 100vh; }
+  #bar { display: flex; align-items: center; gap: 10px; padding: 7px 14px;
+         background: #15151c; border-bottom: 2px solid #6d5c37; flex: 0 0 auto; }
+  #bar .dot { width: 8px; height: 8px; border-radius: 50%; background: #4a9c5c; }
+  #bar b { font-weight: 600; color: #f0e8dc; font-size: 13px; }
+  #bar span { color: #8c8c9c; margin-left: auto; }
+  #wrap { flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
+          min-height: 0; overflow: hidden; }
+  #stage { width: 800px; height: 600px; flex: 0 0 auto;
+           box-shadow: 0 0 0 1px #3a3325, 0 10px 40px rgba(0,0,0,.6); background: #000;
+           transform-origin: center center; }
+  /* 100%, not 800x600: the plugin's box must follow #stage, which the fit script
+     resizes.  Pinning it here beat the width/height attributes the script sets (CSS
+     wins over attributes) and left the plugin at 800x600 inside a differently sized
+     stage. */
+  #stage object, #stage embed { display: block; width: 100%; height: 100%; }
+  /* The hint floats over the game instead of taking a strip of its own: as a flex
+     item with an opaque background it covered the bottom of the stage.  Transparent,
+     non-interactive (so it never eats a click meant for the game), and it fades away
+     by itself a few seconds after the page settles. */
+  #hint { position: fixed; left: 0; right: 0; bottom: 0; padding: 4px 10px;
+          color: rgba(255,255,255,.62); background: transparent;
+          text-shadow: 0 1px 3px rgba(0,0,0,.95), 0 0 6px rgba(0,0,0,.75);
+          text-align: center; pointer-events: none; z-index: 5;
+          animation: hintfade .9s ease 8s forwards; }
+  @keyframes hintfade { to { opacity: 0; } }
+  #noflash { position: fixed; top: 0; right: 0; bottom: 0; left: 0; display: none;
+             align-items: center; justify-content: center; text-align: center;
+             padding: 8vh 8vw; background: #0b0b0b; color: #e8e8e8;
+             font-size: 14px; line-height: 1.9; }
+  #noflash b { color: #f0c96a; font-weight: normal; }
+  #noflash a { color: #f0c96a; }
+  #noflash .btn { display: inline-block; padding: 9px 18px; border-radius: 8px;
+                  border: 1px solid #6d5c37; background: #1b1b22; color: #f0c96a;
+                  text-decoration: none; font-size: 14px; }
+  #noflash .btn:hover { background: #24242c; }
+</style>
+</head>
+<body>
+<!--
+  The real-Flash player: the publisher's browser is Electron 4 with Pepper Flash
+  (resources/app/Plugins/pepflashplayer.dll), so a plain <object>/<embed> plays the
+  game natively at its own 800x600.  This is the only player the pack uses; the
+  install-free page that used to be the fallback at /play is switched off.
+-->
+<div id="wrap">
+  <div id="stage">
+    <object id="game" type="application/x-shockwave-flash" width="800" height="600">
+      <param name="movie" value="index.swf">
+      <param name="quality" value="high">
+      <param name="bgcolor" value="#000000">
+      <param name="allowScriptAccess" value="always">
+      <param name="allowFullScreen" value="true">
+      <!-- opaque, not window: a windowed plugin paints its own native surface and no page
+       CSS transform can scale it, so the fit script's scaling never reached the game
+       (maximising the window left it small in a big black frame). -->
+      <param name="wmode" value="opaque">
+      <embed src="index.swf" type="application/x-shockwave-flash" width="800" height="600"
+             quality="high" bgcolor="#000000" allowScriptAccess="always"
+             allowFullScreen="true" wmode="opaque">
+    </object>
+  </div>
+</div>
+<div id="hint">Click the game once if the keyboard does not respond. Close this window to go back to the launcher.</div>
+<div id="noflash">
+  <div>
+    <b id="nf-why">This browser cannot start Flash.</b><br>
+    Little Prince Online plays with real Flash, in the publisher's own browser &mdash;
+    the launcher starts it for you, and fetches it first if it is not on this PC yet.
+    The install-free web player is switched off on purpose.<br><br>
+    <a class="btn" id="nf-go" href="#" onclick="location.reload();return false;">Try again</a>
+    <a class="btn" href="/play">How to play</a>
+  </div>
+</div>
+<script>
+  // Say so, plainly, when Flash is missing.  Two ways that happens:
+  //   1. the plugin is not installed at all (a normal browser, most Macs since
+  //      Chrome dropped it) - navigator.plugins shows nothing;
+  //   2. the plugin IS listed but the movie never started: blocked until allowed,
+  //      a broken install, or the bundled Chromium running without Rosetta on
+  //      Apple Silicon - so the plugin LIST is not proof and the <object> is asked
+  //      directly instead.
+  // This used to hand the player over to the Ruffle page at /play.  The pack is
+  // Flash-only now, so the overlay just explains where the game does run.
+  (function () {
+    var WHY = document.getElementById("nf-why");
+
+    function giveUp(why) {
+      var box = document.getElementById("noflash");
+      if (!box || box.getAttribute("data-shown") === "1") { return; }
+      box.setAttribute("data-shown", "1");
+      if (why) { WHY.textContent = why; }
+      box.style.display = "flex";
+    }
+
+    var found = false, plugins = navigator.plugins || [];
+    for (var i = 0; i < plugins.length; i++) {
+      if (/shockwave flash/i.test(plugins[i].name)) { found = true; break; }
+    }
+    if (!found) { giveUp("This browser has no Flash plugin."); return; }
+
+    // The plugin is listed - did the movie actually start?  Flash exposes
+    // PercentLoaded() on the object; without a working plugin it is absent, null,
+    // or throws.  Give it long enough to be sure before switching away.
+    setTimeout(function () {
+      var obj = document.getElementById("game");
+      var alive = false;
+      try {
+        if (obj && typeof obj.PercentLoaded === "function") {
+          var p = obj.PercentLoaded();
+          alive = (p !== null && p !== undefined);
+        }
+      } catch (e) { alive = false; }
+      if (!alive) { giveUp("Flash is installed but did not start."); }
+    }, 2500);
+  })();
+</script>
+<script>
+  // Fit the stage to the window, 4:3, as large as it goes.  Plain ES5 on purpose:
+  // the publisher's browser is Chrome 69.
+  //
+  // Two ways to change a Flash stage's size, and they are not equal:
+  //   * setting the object's width/height gives a crisp stage but may restart the
+  //     movie - fine once, while the page is still loading, fatal mid-game;
+  //   * scaling the whole thing with a transform never restarts anything, but a
+  //     big scale is slightly soft.
+  // So: size it properly on the first pass, then only ever scale.
+  (function () {
+    var BASE_W = 800, BASE_H = 600;
+    var sized = false, baseScale = 1;
+
+    function sizeStage(scale) {
+      var stage = document.getElementById("stage");
+      var game = document.getElementById("game");
+      if (!stage) { return; }
+      var w = Math.round(BASE_W * scale), h = Math.round(BASE_H * scale);
+      if (game) { game.setAttribute("width", w); game.setAttribute("height", h); }
+      var embeds = stage.getElementsByTagName("embed");
+      for (var i = 0; i < embeds.length; i++) {
+        embeds[i].setAttribute("width", w);
+        embeds[i].setAttribute("height", h);
+      }
+      stage.style.width = w + "px";
+      stage.style.height = h + "px";
+    }
+
+    function fit() {
+      var wrap = document.getElementById("wrap");
+      var stage = document.getElementById("stage");
+      if (!wrap || !stage) { return; }
+      // Measure something that always has a size.  #wrap is a flex child, and in
+      // Chromium 69 (the publisher's Electron 4) its clientHeight can still be 0 on
+      // the first pass - the old `|| BASE_H` turned that "not measured yet" into 600,
+      // which pinned the stage at 800x600 for the whole session: it never filled a
+      // wider window, and in a window shorter than 600px the bottom of the stage
+      // (the 系統: 9.13 / 條款及細則 line) sat outside the window.  The cloud pages
+      // (LP1/LP2/LP3) always measured the viewport for exactly this reason.
+      var availW = document.documentElement.clientWidth || wrap.clientWidth;
+      var availH = document.documentElement.clientHeight || wrap.clientHeight;
+      if (!availW || !availH) { return; }         // nothing measured yet - retry below
+      var scale = Math.min(availW / BASE_W, availH / BASE_H);
+      if (!isFinite(scale) || scale <= 0) { return; }
+      if (!sized) {
+        sized = true;
+        baseScale = scale;
+        sizeStage(scale);
+      } else {
+        var rel = scale / baseScale;
+        var style = "scale(" + rel + ")";
+        stage.style.transform = style;
+        stage.style.msTransform = style;
+        stage.style.webkitTransform = style;
+      }
+      // (the old `#fitline` readout is gone: the page never had such an element, so
+      //  the reference only ever threw a ReferenceError at the end of each fit)
+    }
+    window.onresize = fit;
+    // Only lock the first size once a real box has been measured: the first frames
+    // of a freshly created page can still report 0, and a resize is not guaranteed
+    // to follow (the publisher's window opens at a fixed size).
+    fit();
+    window.addEventListener("load", function () {
+      fit();
+      setTimeout(fit, 400);
+      setTimeout(fit, 1500);
+    });
+  })();
+</script>
+</body>
+</html>

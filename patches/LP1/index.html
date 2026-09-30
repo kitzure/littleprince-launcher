@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Little Prince</title>
+<style>
+  html, body { margin:0; padding:0; width:100%; height:100%; background:#014587;
+                overflow:hidden; }
+  /* The stage box is the whole window and only exists to centre the game in it.
+     No `inset` here: the publisher's browser is Electron 4 (Chromium 69) and does not
+     support it, which leaves the stage zero-sized and makes Flash complain that the
+     movie is too small. */
+  #stage { position:absolute; top:0; left:0; width:100%; height:100%;
+           display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  #box { flex:0 0 auto; transform-origin:center center; }
+  #box object, #box embed { display:block; }
+  #note { position:absolute; left:0; right:0; bottom:6px; text-align:center; z-index:5;
+           color:rgba(255,255,255,.6); font:11px -apple-system,"Segoe UI",system-ui,sans-serif; }
+  #note a { color:rgba(255,255,255,.85); }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="note"></div>
+<script>
+  const ENTRY = "start.swf";
+  // The publisher's browser is Electron with Pepper Flash inside it.  This pack is
+  // Flash-only on purpose: the game does not run correctly in the install-free player,
+  // so a browser without Flash is sent to the publisher's own browser instead.
+  const hasFlash = /Electron/.test(navigator.userAgent);
+  const BROWSER_ZIP =
+    "http://www.little-prince.com.hk/littleprince/Download/LittlePrinceBrowserHome.zip";
+
+  var BASE_W = 800, BASE_H = 600, sized = false, baseScale = 1;
+
+  // Build the game at the size that fits the window: crisp, and it does not matter
+  // that Flash restarts here because the page has only just loaded.
+  function sizeStage(scale) {
+    var box = document.getElementById("box");
+    var game = document.getElementById("game");
+    if (!box) { return; }
+    var w = Math.round(BASE_W * scale), h = Math.round(BASE_H * scale);
+    if (game) { game.setAttribute("width", w); game.setAttribute("height", h); }
+    var embeds = box.getElementsByTagName("embed");
+    for (var i = 0; i < embeds.length; i++) {
+      embeds[i].setAttribute("width", w);
+      embeds[i].setAttribute("height", h);
+    }
+    box.style.width = w + "px";
+    box.style.height = h + "px";
+  }
+
+  // Every later resize only scales the stage, so the player keeps their game.
+  function fit() {
+    var box = document.getElementById("box");
+    if (!box) { return; }
+    var w = document.documentElement.clientWidth || BASE_W;
+    var h = document.documentElement.clientHeight || BASE_H;
+    var scale = Math.min(w / BASE_W, h / BASE_H);
+    if (!isFinite(scale) || scale <= 0) { scale = 1; }
+    if (!sized) {
+      sized = true;
+      baseScale = scale;
+      sizeStage(scale);
+    } else {
+      var rel = scale / baseScale;
+      var t = "scale(" + rel + ")";
+      box.style.transform = t;
+      box.style.msTransform = t;
+      box.style.webkitTransform = t;
+    }
+  }
+  window.addEventListener("resize", fit);
+
+  function withFlash() {
+    document.getElementById("stage").innerHTML =
+      '<div id="box"><object id="game" width="800" height="600"' +
+      ' type="application/x-shockwave-flash" data="' + ENTRY + '">' +
+      '<param name="movie" value="' + ENTRY + '">' +
+      '<param name="quality" value="high">' +
+      '<param name="bgcolor" value="#014587">' +
+      '<param name="scale" value="showall">' +
+      '<param name="allowScriptAccess" value="sameDomain">' +
+      '<param name="wmode" value="window"></object></div>';
+    document.getElementById("note").innerHTML =
+      'Served by the local server &middot; playing with the browser\'s own Flash player';
+    fit();
+  }
+
+  function showNoFlash() {
+    document.getElementById("stage").innerHTML =
+      '<div style="max-width:580px;margin:0 auto;padding:0 24px;text-align:center;' +
+      'color:#fff;font:14px/1.9 -apple-system,\'Segoe UI\',system-ui,sans-serif">' +
+      '<div style="font-size:19px;color:#ffd98a;margin-bottom:12px">' +
+      'This game plays in the publisher\'s own browser</div>' +
+      'The install-free player has been switched off: the game does not run correctly ' +
+      'in it, so it would show you bugs that are not in the real game.<br><br>' +
+      'Download the official browser, then open this page again:<br>' +
+      '<a style="color:#ffd98a" href="' + BROWSER_ZIP + '">LittlePrinceBrowserHome.zip</a>' +
+      '<div style="margin-top:16px;color:rgba(255,255,255,.66);font-size:12px">' +
+      'The launcher downloads it and sets it up for you &mdash; just press <b>Play</b> ' +
+      'there.<br><a style="color:rgba(255,255,255,.8)" href="/LP/personal/">' +
+      'Back to all games</a></div></div>';
+    document.getElementById("note").innerHTML = "";
+  }
+
+  function boot() {
+    try {
+      if (hasFlash) withFlash(); else showNoFlash();
+    } catch (e) {
+      document.getElementById("note").textContent = "Could not start the player: " + e;
+    }
+  }
+  if (document.readyState === "complete") boot();
+  else window.addEventListener("load", boot);
+</script>
+<!-- The mods strip is deliberately NOT loaded on the CD games: each game draws its
+     own counter row (LP1's five coloured diamonds + three hexagon slots are the same
+     eight star-element values the strip reported), so the strip only doubled the
+     numbers over the top of the game's own HUD.  The Mods entry point still lives in
+     the browser's menu bar, and the Online window still shows the strip. -->
+</body>
+</html>

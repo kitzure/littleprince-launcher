@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Little Prince Online</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0b0b0b; overflow: hidden; }
+  #stage { width: 100%; height: 100%; }
+  #hint { position: fixed; left: 0; right: 0; bottom: 0; padding: 4px 10px;
+          font: 11px/1.4 system-ui, sans-serif; color: rgba(255,255,255,.7);
+          background: transparent;
+          text-shadow: 0 1px 3px rgba(0,0,0,.95), 0 0 6px rgba(0,0,0,.75);
+          pointer-events: none; animation: hintfade .9s ease 8s forwards; }
+  @keyframes hintfade { to { opacity: 0; } }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="hint">Little Prince Online — running locally. Click the game once if the keyboard does not respond.
+  Logins only work in the browser the launcher opened: it routes the game's own server names
+  (www1.little-prince.com.hk, …) to this machine, while a normal browser reaches the real publisher.</div>
+<div id="selftest" style="position:fixed;left:8px;top:8px;right:8px;padding:8px 10px;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#e6e6e6;background:rgba(0,0,0,.86);border:1px solid #333;border-radius:8px;display:none;white-space:pre-wrap;z-index:9"></div>
+<script>
+  window.RufflePlayer = window.RufflePlayer || {};
+  window.RufflePlayer.config = {
+    autoplay: "on",
+    unmuteOverlay: "hidden",
+    letterbox: "on",
+    scale: "showAll",
+    quality: "high",
+    splashScreen: false,
+    allowScriptAccess: true,
+    openUrlMode: "deny",
+    logLevel: "error",
+    // LAN multiplayer: tunnel the game's XMLSocket(127.0.0.1:8443) through a
+    // WebSocket to the relay (same host serving this page, port 8443)
+    socketProxy: [{ host: "127.0.0.1", port: 8443, proxyUrl: "ws://127.0.0.1:8443" }]
+  };
+</script>
+<script src="/web/ruffle/ruffle.js"></script>
+<script>
+  (function () {
+    function boot() {
+      try {
+        const ruffle = window.RufflePlayer.newest();
+        const player = ruffle.createPlayer();
+        player.style.width = "100%";
+        player.style.height = "100%";
+        document.getElementById("stage").appendChild(player);
+        // served either at /play or at the game's own folder (/LP/Po/) - load
+        // index.swf next to whatever this page's URL is
+        const base = location.pathname.replace(/[^/]*$/, "");
+        player.ruffle().load({ url: base + "index.swf" });
+      } catch (e) {
+        document.getElementById("hint").textContent =
+          "Could not start the player: " + e + " — is the game in lpo/game/ ?";
+      }
+    }
+    if (document.readyState === "complete") boot();
+    else window.addEventListener("load", boot);
+
+    // Ruffle measures the player's box once, when the movie loads, and this build
+    // (0.7.0-nightly.2026.9.12) has no resize handling - so resizing the window left
+    // the game at its first, small size in the middle of a much bigger black window.
+    // Re-apply the box on every resize, and when the canvas has not followed the new
+    // box, zoom the player so the game fills the window the way the Flash page does.
+    // Ruffle reads pointer positions off the scaled canvas, so a uniform zoom keeps
+    // the mouse mapping correct.
+    let fitTimer = null;
+
+    function fit() {
+      const host = document.getElementById("stage");
+      if (!host) return;
+      const w = host.clientWidth, h = host.clientHeight;
+      if (!w || !h) return;
+      const player = host.querySelector("ruffle-player") || host.firstElementChild;
+      if (!player) return;
+      player.style.width = w + "px";
+      player.style.height = h + "px";
+      const canvas = (player.shadowRoot || player).querySelector("canvas");
+      if (!canvas || !canvas.clientWidth || !canvas.clientHeight) return;
+      const k = Math.min(w / canvas.clientWidth, h / canvas.clientHeight);
+      player.style.transformOrigin = "center center";
+      player.style.transform = (k > 1.01 || k < 0.99) ? "scale(" + k + ")" : "";
+    }
+
+    window.addEventListener("resize", function () {
+      if (fitTimer) clearTimeout(fitTimer);
+      fitTimer = setTimeout(fit, 150);
+    });
+    window.addEventListener("load", function () {
+      fit(); setTimeout(fit, 400); setTimeout(fit, 1500);
+    });
+
+    // ?selftest=1  ->  talk to the game server exactly like the client does,
+    // straight from this page, and show the reply.  (Diagnostic only.)
+    if (location.search.indexOf("selftest") >= 0) {
+      const box = document.getElementById("selftest");
+      box.style.display = "block";
+      const log = (t) => { box.textContent += t + "\n"; };
+      const str = (v) => {
+        const b = new TextEncoder().encode(v);
+        return [0x02, b.length >> 8, b.length & 255, ...b];
+      };
+      const num = (v) => {
+        const buf = new ArrayBuffer(9), dv = new DataView(buf);
+        dv.setUint8(0, 0x00); dv.setFloat64(1, v); return [...new Uint8Array(buf)];
+      };
+      const obj = (o) => {
+        let out = [0x03];
+        for (const k in o) out = out.concat(str(k), o[k]);
+        return out.concat([0, 0, 0x09]);
+      };
+      const ecma = (o) => {
+        let out = [0x08, 0, 0, 0, 1];
+        for (const k in o) out = out.concat(str(k), o[k]);
+        return out.concat([0, 0, 0x09]);
+      };
+      const strict = (arr) => {
+        let out = [0x0a, 0, 0, 0, arr.length];
+        arr.forEach((a) => { out = out.concat(a); });
+        return out;
+      };
+      const packet = (target, resp, body) => {
+        const t = new TextEncoder().encode(target), r = new TextEncoder().encode(resp);
+        const head = [0, 0, 0, 0, 0, 1, t.length >> 8, t.length & 255, ...t,
+                      r.length >> 8, r.length & 255, ...r,
+                      (body.length >>> 24) & 255, (body.length >>> 16) & 255,
+                      (body.length >>> 8) & 255, body.length & 255];
+        return new Uint8Array(head.concat(body));
+      };
+
+      log("AMF self-test");
+      log("page origin : " + location.origin);
+      const url = "http://www1.little-prince.com.hk/littleprince/amfservice/gateway.php";
+      log("gateway     : " + url);
+      const body = strict([ecma({ "0": obj({ password: "selftest", type: "login4",
+                                              loginname: "selftest@browser.local" }) })]);
+      const started = Date.now();
+      let httpStatus = 0;
+      fetch(url, { method: "POST", body: packet("PrinceOnline.serviceRequest", "/1", body),
+                   headers: { "Content-Type": "application/x-amf" }, mode: "cors",
+                   cache: "no-store" })
+        .then((r) => { httpStatus = r.status; log("HTTP " + r.status + " after " + (Date.now() - started) + "ms"); return r.arrayBuffer(); })
+        .then((buf) => {
+          const bytes = new Uint8Array(buf);
+          const text = new TextDecoder("latin1").decode(bytes);
+          const found = ["loginSuccess", "loginFail", "e000", "response"]
+            .filter((k) => text.indexOf(k) >= 0);
+          const name = (text.match(/([\u4e00-\u9fff]{2,})/) || [])[0] || "";
+          log("reply bytes : " + bytes.length);
+          log("markers     : " + (found.join(", ") || "none"));
+          if (name) log("text in reply: " + name);
+          log("RESULT: " + (bytes.length > 0
+              ? "OK - the game server answered this page (HTTP " + httpStatus + ")"
+              : "the server answered with nothing"));
+          log(bytes.length > 0
+              ? "        the client's own login will follow the same path."
+              : "        check that the server window is running.");
+        })
+        .catch((e) => { log("RESULT: request failed - " + e); log("(cross-domain blocked?)"); });
+    }
+  })();
+</script>
+</body>
+</html>

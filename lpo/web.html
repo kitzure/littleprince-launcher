@@ -1,0 +1,3364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Little Prince Launcher — Play Account</title>
+<link rel="icon" href="/web/theme/logo.png">
+<style>
+  :root{
+    --bg:#d9eefb; --panel:#ffffff; --field:#ffffff; --line:#bcdcf0; --line-2:#a9d3ea;
+    --txt:#111111; --dim:#3f4d59; --amber:#19719e; --amber-line:#a9d3ea; --amber-bg:#e3f3fb;
+    --good:#1a7f37; --bad:#c0392b;
+  }
+  *{box-sizing:border-box}
+  html,body{background:var(--bg)}
+  body{margin:0;color:var(--txt);font:15px/1.55 -apple-system,"Segoe UI",system-ui,sans-serif}
+  a{color:var(--amber)}
+  svg.i{width:16px;height:16px;flex:0 0 16px;stroke:currentColor;stroke-width:1.6;fill:none;
+        stroke-linecap:round;stroke-linejoin:round}
+
+  /* ── header ─────────────────────────────────────────────────────────── */
+  header{position:sticky;top:0;z-index:9;background:rgba(169,220,244,.96);backdrop-filter:blur(10px);
+         border-bottom:1px solid var(--line)}
+  .bar{max-width:1120px;margin:0 auto;padding:16px;display:flex;flex-wrap:wrap;
+       align-items:center;gap:10px}
+  .brand{display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0}
+  /* the admin link sits on the far right of the title row, and the tabs take the
+     row below it */
+  .bar a.btn{margin-left:auto;flex:0 0 auto}
+  .brand .star{width:24px;height:24px;flex:0 0 24px;stroke:var(--amber);stroke-width:1.6;fill:none;
+               stroke-linecap:round;stroke-linejoin:round}
+  h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.2px}
+  .sub{color:var(--dim);font-size:11.5px}
+  nav{display:flex;gap:2px;margin-top:12px;flex:1 1 100%}
+  nav button{background:none;border:none;color:var(--dim);padding:9px 10px;font:inherit;font-size:14px;
+             cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+  nav button.on{color:var(--txt);border-bottom-color:var(--amber)}
+  .hide{display:none!important}
+
+  /* ── page ───────────────────────────────────────────────────────────── */
+  /* ── the workspace: the list of things on the left, the chosen one's config
+        on the right.  Both columns are the page; on a phone the rail stacks on
+        top so the list is what you land on. ── */
+  main{max-width:1120px;margin:0 auto;padding:16px 16px 96px;display:grid;
+       grid-template-columns:250px minmax(0,1fr);gap:18px;align-items:start}
+  .panes{min-width:0;display:grid;gap:14px}
+  .rail{position:sticky;top:78px;display:flex;flex-direction:column;gap:4px;
+        max-height:calc(100vh - 130px);overflow:auto}
+  .rail .rl{font-size:10.5px;color:var(--dim);letter-spacing:1.2px;text-transform:uppercase;
+            padding:12px 10px 5px}
+  .rail .rl:first-child{padding-top:2px}
+  /* a hairline where one group of things ends and the next begins: the account
+     menu, the settings pages and the two admin pages are three different places */
+  .rail .grp{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+  .rail .grp .rl{padding-top:0}
+  .rail button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;
+        background:transparent;border:1px solid transparent;border-radius:10px;
+        padding:9px 10px;color:var(--dim);font:inherit;font-size:13px;cursor:pointer}
+  .rail button:hover{background:#eef8fd;border-color:var(--line);color:var(--txt)}
+  /* the section you are inside vs the page you are on: the parent gets a quiet
+     pill with an amber bar, the child tab gets the filled amber pill */
+  .rail button.on{background:#e3f3fb;border-color:#a9d3ea;color:var(--txt);
+        box-shadow:inset 2px 0 0 var(--amber)}
+  .rail button.on svg.i{stroke:var(--amber)}
+  /* a sub item is a CHILD of the tab above it, so it gets the amber edge rather
+     than the same filled row - otherwise two entries look equally "current" */
+  .subnav button.on{background:#eef8fd;border-color:transparent;color:var(--amber);
+                    box-shadow:inset 2px 0 0 var(--amber)}
+  .rail button svg.i{flex:0 0 auto}
+  @media(max-width:820px){
+    main{grid-template-columns:minmax(0,1fr);padding:12px 12px 92px}
+    .rail{position:static;max-height:none;overflow:visible;border:1px solid var(--line);
+          border-radius:14px;background:var(--panel);padding:8px}
+  }
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+  h2{font-size:14px;font-weight:600;margin:0}
+  h3{font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--dim);
+     margin:22px 0 8px}
+  h3:first-of-type{margin-top:14px}
+  /* a section heading with a hairline running out of it: these panels are long
+     forms, and this is what stops them reading as one undifferentiated pile */
+  h3.sh{display:flex;align-items:center;gap:10px}
+  h3.sh::after{content:"";flex:1 1 auto;height:1px;background:var(--line)}
+  h3.sh .pill{text-transform:none;letter-spacing:.2px}
+  .hint{color:var(--dim);font-size:12px;margin:6px 0 0}
+  .hint.ok{color:var(--good)}
+  .hint.err{color:var(--bad)}
+  /* ── status pills and fact chips: one fact per small box ─────────────── */
+  .pill{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;
+        background:#eef8fd;color:var(--dim);padding:1px 8px;font:inherit;font-size:10.5px;
+        letter-spacing:.3px;white-space:nowrap;vertical-align:middle}
+  .pill:empty{display:none}
+  .pill.amber,#adminnav .item[aria-current="true"] .pill{border-color:var(--amber-line);
+        background:var(--amber-bg);color:var(--amber)}
+  .pill.good{border-color:#a8d8b4;color:var(--good)}
+  .pill.bad{border-color:#e0a8a8;color:var(--bad)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:3px}
+  .chip{border:1px solid var(--line);border-radius:8px;background:#eef8fd;color:var(--dim);
+        padding:1px 7px;font-size:11px;white-space:nowrap;max-width:100%;overflow:hidden;
+        text-overflow:ellipsis}
+  .chip.amber{border-color:var(--amber-line);background:var(--amber-bg);color:var(--amber)}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}
+  .tab{border:1px solid var(--line);border-radius:8px;background:#eef8fd;color:var(--dim);
+    padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit}
+  .tab:hover{border-color:#2196c9;color:var(--txt)}
+  .tab.on{border-color:var(--amber-line);background:var(--amber-bg);color:var(--amber)}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  /* a sub-panel inside a panel: one idea per box */
+  .block{border:1px solid var(--line);border-radius:12px;background:#f6fbfe;padding:14px}
+  .block + .block{margin-top:12px}
+  .block > .hint:first-child{margin-top:0}
+  /* a row that pairs a note with the buttons that act on it */
+  .rowhead{display:flex;align-items:center;gap:12px;justify-content:space-between;
+           flex-wrap:wrap;margin-top:14px}
+  .rowhead .hint{margin:0}
+  /* long explanatory lines stop at a readable measure instead of running the whole
+     width of a desktop card */
+  #tab-panel-personal .hint,#tab-panel-account .hint,#tab-panel-worlds .hint,
+  #tab-panel-stats .hint,#tab-panel-list .hint,#tab-panel-files .hint,#bb-pane .hint{
+        max-width:76ch}
+  /* one column rhythm across the whole stats card, so the numbers line up group
+     by group instead of every group inventing its own widths */
+  @media(min-width:640px){
+    #tab-panel-stats .grid,#tab-panel-stats .grid.tight{
+          grid-template-columns:repeat(5,minmax(0,1fr))}
+  }
+
+  .home-card{padding:28px;background:radial-gradient(ellipse at top right,#eaf6fd 0,transparent 65%),var(--panel)}
+  .home-head{display:flex;gap:16px;align-items:center}
+  /* One rule, one intent: a round portrait of the HEAD.  This used to set
+     object-fit:cover and then object-fit:contain later in the same block, so the
+     whole body was shrunk into the circle and the face was a smudge. */
+  .pavatar-ring{width:84px;height:84px;flex:0 0 84px;border-radius:50%;overflow:hidden;
+    border:2px solid var(--amber-line);background:#ffffff}
+  .pavatar-ring .pavatar{width:100%;height:100%;display:block;object-fit:cover;
+    object-position:50% 6%}
+  /* the games strip: LP1 / LP2 / LP3 / LPO, one game's status at a time */
+  .gtabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0}
+  .gtabs button{background:#ffffff;border:1px solid var(--line);color:var(--dim);
+    padding:8px 15px;border-radius:999px;font:inherit;font-size:12.5px;letter-spacing:.5px;
+    cursor:pointer}
+  .gtabs button:hover{color:var(--txt);border-color:#a9d3ea}
+  .gtabs button.on{background:var(--amber-bg);border-color:var(--amber-line);color:var(--amber)}
+  .gstatus{margin-top:12px}
+  .gstatus .ghead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .gstatus .ghead b{font-size:13.5px}
+  .gstatus .ghead .pill{margin-left:auto}
+  .gstatus .tiles{margin-top:2px}
+  .recent-list{gap:0;padding:8px 14px;border:1px solid var(--line);border-radius:12px;background:#ffffff}
+  .recent-list .row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .recent-list .row + .row{border-top:1px solid var(--line)}
+  .recent-list .row .t{padding:9px 0}
+  .recent-list .score{color:var(--amber);font-weight:700;font-size:13px;white-space:nowrap}
+  .recent-list .when{color:var(--dim);font-size:11px}
+  .toast{position:fixed;right:18px;bottom:18px;z-index:60;background:var(--panel);
+    border:1px solid var(--amber-line);border-radius:12px;padding:12px 18px;font-size:13px;
+    color:var(--txt);box-shadow:0 8px 30px rgba(0,0,0,.5);display:flex;gap:9px;align-items:center;
+    opacity:0;transform:translateY(8px);transition:opacity .22s,transform .22s;pointer-events:none}
+  .toast.on{opacity:1;transform:none}
+  .toast .dot{width:8px;height:8px;border-radius:50%;background:#2c6b34;flex:0 0 8px}
+  .eyebrow{font-size:10px;letter-spacing:1.8px;color:var(--amber);margin-bottom:12px}
+  .home-card h2{font-size:28px;line-height:1.2;letter-spacing:-.7px}
+  .home-card > .hint{font-size:13px;margin-top:12px}
+  .home-card h3{margin-top:26px}
+  .home-card .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .home-card .actions .btn{justify-content:flex-start;text-align:left;padding:14px;font-size:13px}
+  .home-card .list{gap:0;padding:8px 14px;border:1px solid var(--line);border-radius:12px;background:#ffffff}
+  .home-card .row + .row{border-top:1px solid var(--line)}
+  .home-card .row .t{padding:10px 0}
+  @media(max-width:480px){.home-card{padding:20px}.home-card h2{font-size:25px}.home-card .actions{grid-template-columns:1fr}}
+
+  /* sub-tabs inside the settings panel */
+  .subnav{display:flex;flex-direction:column;gap:4px}
+  .subnav button.on{color:var(--txt);border-color:var(--amber-line);background:var(--amber-bg)}
+  .subnav button.on svg.i{stroke:var(--amber)}
+
+  .row .t{display:grid;grid-template-columns:minmax(130px,1fr) minmax(0,2fr);gap:8px 20px;padding:6px 0}
+  .row .t b{font-size:12px;font-weight:500;color:var(--dim)}
+  .row .t > span{overflow-wrap:anywhere}
+  button:focus-visible,a:focus-visible{outline:2px solid #2196c9;outline-offset:3px}
+  input[type=checkbox]:focus-visible,select:focus-visible,textarea:focus-visible{
+        outline:2px solid #2196c9;outline-offset:2px}
+  @media(max-width:480px){.row .t{grid-template-columns:1fr;gap:2px}.subnav{flex-wrap:wrap}.me{flex-wrap:wrap}}
+
+  /* ── fields ─────────────────────────────────────────────────────────── */
+  .field{display:grid;gap:6px}
+  .grid{display:grid;gap:10px 12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+        align-items:start}
+  .grid.tight{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
+  /* year / month / day: three bare dropdowns read as one mystery control, so they
+     get the words above them and the same three columns as the selects */
+  .dobleg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 12px;
+        font-size:10px;letter-spacing:.9px;text-transform:uppercase;color:#3f4d59}
+  label{display:block;font-size:11.5px;color:var(--dim);letter-spacing:.2px}
+  input,select{width:100%;background:var(--field);border:1px solid var(--line);color:var(--txt);
+               border-radius:10px;padding:10px 11px;font:inherit;font-size:14px;appearance:none}
+  select{background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),
+                       linear-gradient(135deg,var(--dim) 50%,transparent 50%);
+         background-position:calc(100% - 17px) 52%,calc(100% - 12px) 52%;
+         background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:34px}
+  input:focus,select:focus{outline:none;border-color:var(--line-2)}
+  input:disabled{color:var(--dim);background:#f6fbfe}
+  /* the native checkbox paints a white box on a black page, so it is drawn here in
+     the same language as everything else: a hairline box that fills amber when set */
+  textarea{width:100%;background:var(--field);border:1px solid var(--line);color:var(--txt);
+        border-radius:10px;padding:10px 11px;font:inherit;font-size:14px;line-height:1.5;
+        resize:vertical;min-height:96px}
+  textarea:focus{outline:none;border-color:var(--line-2)}
+  input[inputmode="numeric"]{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+        letter-spacing:.4px}
+  .chk{display:flex;align-items:center;gap:9px;color:var(--txt);font-size:12.5px;margin-top:12px;
+        cursor:pointer}
+  input[type=checkbox]{appearance:none;width:18px;height:18px;flex:0 0 18px;margin:0;padding:0;
+        background:#f4fafe;border:1px solid var(--line-2);border-radius:5px;display:grid;
+        place-items:center;cursor:pointer}
+  input[type=checkbox]::after{content:"";width:9px;height:9px;border-radius:2px}
+  input[type=checkbox]:checked{border-color:var(--amber);background:var(--amber-bg)}
+  input[type=checkbox]:checked::after{background:var(--amber)}
+  input[type=checkbox]:hover{border-color:#2196c9}
+
+  /* ── buttons ────────────────────────────────────────────────────────── */
+  button{font:inherit}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;
+       border:1px solid var(--line);background:var(--field);color:var(--txt);padding:10px 14px;
+       font-size:14px;cursor:pointer}
+  .btn:hover{border-color:var(--line-2)}
+  .btn.primary{background:#8ecfec;border-color:#2196c9;color:#111111;font-weight:600}
+  .btn.primary:hover{background:#a9dcf4}
+  .btn.ghost{background:transparent;color:var(--dim)}
+  .btn.sm{padding:7px 10px;font-size:12.5px;border-radius:10px}
+  .btn.danger{color:var(--bad);border-color:#e0a8a8}
+  .btn.icon{padding:8px;border-radius:10px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .actions.right{justify-content:flex-end}
+
+  /* the one save bar */
+  .savebar{position:sticky;bottom:0;z-index:8;display:flex;gap:10px;align-items:center;
+           padding:12px 0 0;background:linear-gradient(180deg,rgba(255,255,255,0),#ffffff 42%)}
+  .savebar .btn{flex:0 0 auto}
+  /* the note names what the save button will write to, so it reads as a target
+     rather than as decoration */
+  .savebar #save-note{margin-left:auto;text-align:right;font-family:ui-monospace,SFMono-Regular,
+           Menlo,monospace;font-size:11px;color:var(--dim);overflow-wrap:anywhere}
+
+  /* ── messages ───────────────────────────────────────────────────────── */
+  .msg{border:1px solid var(--line);border-left:2px solid var(--line-2);border-radius:10px;
+       background:#f6fbfe;padding:10px 12px;font-size:12.5px;margin-top:12px;color:var(--dim)}
+  .msg.ok{border-color:#a8d8b4;border-left-color:var(--good);color:var(--good)}
+  .msg.err{border-color:#e0a8a8;border-left-color:var(--bad);color:var(--bad)}
+  .msg:empty{display:none}
+
+  /* ── account header ─────────────────────────────────────────────────── */
+  .me{display:flex;align-items:center;gap:12px}
+  .avatar{width:40px;height:40px;flex:0 0 40px;border-radius:50%;background:var(--field);
+          border:1px solid var(--line);display:grid;place-items:center;font-size:15px;font-weight:600}
+  .me .who{min-width:0;flex:1}
+  .me .who b{display:block;font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;
+             white-space:nowrap}
+  .me .who span{color:var(--dim);font-size:11.5px}
+  /* the session strip above the workspace: who the panels are editing */
+  .session{padding:12px 14px;border-radius:12px}
+  .session #p-meta{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}
+
+  /* ── worlds ─────────────────────────────────────────────────────────── */
+  .list{display:grid;gap:8px}
+  .world{display:flex;align-items:center;gap:12px;background:var(--bg);border:1px solid var(--line);
+         border-radius:12px;padding:11px 12px;cursor:pointer}
+  .world:hover{border-color:var(--line-2)}
+  .world.on{border-color:var(--amber-line);background:var(--amber-bg)}
+  .world .widx{width:20px;flex:0 0 20px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+         font-size:11px;color:#3f4d59}
+  .world.on .widx{color:var(--amber)}
+  .world .t{min-width:0;flex:1}
+  .world .t b{display:block;font-weight:600;font-size:13.5px}
+  .world .t span{color:var(--dim);font-size:11px}
+  .world .t .file{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere}
+  .world .tag{font-size:10.5px;color:var(--dim);letter-spacing:.5px;text-transform:uppercase}
+  .world.on .tag{color:var(--amber)}
+
+  /* ── accounts list ──────────────────────────────────────────────────── */
+  .acct{display:flex;align-items:center;gap:12px;background:var(--bg);border:1px solid var(--line);
+        border-radius:12px;padding:11px 12px}
+  .acct:hover{border-color:var(--line-2)}
+  .acct.me{border-color:var(--amber-line);background:#e3f3fb}
+  .acct .mono-av{width:34px;height:34px;flex:0 0 34px;border-radius:10px;background:var(--field);
+        border:1px solid var(--line);display:grid;place-items:center;font-size:14px;font-weight:600;
+        color:var(--dim)}
+  .acct.me .mono-av{border-color:var(--amber-line);color:var(--amber)}
+  .acct .who{min-width:0;flex:1}
+  .acct .who b{display:block;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .acct .who > span{color:var(--dim);font-size:11px}
+  .acct .actions{flex:0 0 auto}
+  .empty{color:var(--dim);font-size:12.5px;padding:10px 2px}
+
+  .inline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  code{background:var(--field);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:11.5px}
+  /* ── admin: billboard rows + client folder ───────────────────────────── */
+  #adminnav .item{display:flex;align-items:center;gap:9px;width:100%;text-align:left;
+        background:transparent;border:1px solid transparent;border-radius:10px;
+        padding:9px 10px;color:var(--dim);font:inherit;font-size:13px;cursor:pointer}
+  #adminnav .item:hover{background:#eef8fd;border-color:var(--line);color:var(--txt)}
+  #adminnav .item[aria-current="true"]{background:#eef8fd;border-color:transparent;
+        color:var(--amber);box-shadow:inset 2px 0 0 var(--amber)}
+  #adminnav .item .t{flex:1 1 auto;min-width:0}
+  #adminnav .item .t b{display:block;font-weight:500;font-size:13px;overflow:hidden;
+        text-overflow:ellipsis;white-space:nowrap}
+  #adminnav .item .t span{display:block;color:#3f4d59;font-size:11px;overflow:hidden;
+        text-overflow:ellipsis;white-space:nowrap}
+  #adminnav .item .t .meta{display:flex;align-items:center;gap:6px;font-size:11px;color:#3f4d59}
+  #adminnav .item .t .meta .d{min-width:0;overflow:hidden;text-overflow:ellipsis;
+        white-space:nowrap}
+  #adminnav .item .t .meta .st{flex:0 0 auto;color:#3f4d59;letter-spacing:1px}
+  #adminnav .idx{margin-left:auto;font-size:10.5px;color:#3f4d59;
+        font-family:ui-monospace,monospace}
+  /* the billboard owns the notice rows under it and the add button; this hairline
+     keeps the next admin item from reading as part of that block */
+  .railsep{height:0;border-top:1px solid var(--line);margin:8px 10px}
+  #adminnav .add{width:100%;justify-content:center;border-style:dashed;color:var(--dim);
+        background:transparent;border-radius:10px;padding:8px 10px;font:inherit;font-size:12.5px;
+        cursor:pointer;border-color:#a9d3ea;margin:4px 0 2px}
+  #adminnav .add:hover{color:var(--txt);border-color:#8fb8cd}
+  .railnote{font-size:11.5px;color:var(--dim);padding:6px 10px 2px}
+
+  .stars{display:flex;align-items:center;gap:2px;flex-wrap:wrap}
+  .stars .st{background:transparent;border:none;color:#6b747c;font-size:22px;padding:0 3px;
+        line-height:1;cursor:pointer}
+  .stars .st.on{color:var(--amber)}
+  .stars .st:hover{color:#4a5560}
+  .stars .st.on:hover{color:#0f6a99}
+  .arts{display:flex;gap:8px;flex-wrap:wrap}
+  .arts .btn[aria-current="true"]{border-color:var(--amber);color:var(--amber)}
+  /* the notice editor: the fields on the left, the game's own card on the right,
+     and the row's own toolbar under both */
+  .bb-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:16px;
+        padding-top:12px;border-top:1px solid var(--line)}
+  .bb-bar .spread{margin-left:auto}
+  .preview{max-width:250px;background:#f4fafe;border:1px solid var(--line);border-radius:12px;
+        padding:12px}
+  .preview .pv-date{font-size:11px;color:#3f4d59;font-family:ui-monospace,monospace}
+  .preview .pv-stars{color:var(--amber);font-size:13px;letter-spacing:2px;margin:3px 0 6px}
+  .preview .pv-title{background:#eaf6fd;border:1px solid #a9d3ea;border-radius:6px;padding:5px 8px;
+        font-size:12.5px;font-weight:600;color:var(--txt);overflow:hidden;
+        text-overflow:ellipsis;white-space:nowrap}
+  .preview .pv-art{margin-top:8px;height:70px;border-radius:8px;display:flex;align-items:center;
+        justify-content:center;font-size:11px;color:#111111;
+        background:linear-gradient(180deg,#a9d3ea,#a9dcf4);border:1px solid #a9d3ea}
+  /* ── the billboard's card editor: the stage, its overlay handles, the inspector ──
+     The editor is a WORKSPACE, not a long form: on a wide window both columns are
+     capped to what fits under the toolbar and each scrolls on its own (`--bbh` is
+     set by bbFit() from the real window and measured offsets), so the page itself
+     never has to be scrolled to reach a control. */
+  .bb-edit{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:stretch;
+        margin-top:10px;--bbh:none}
+  @media (max-width:1150px){ .bb-edit{grid-template-columns:minmax(0,1fr);align-items:start} }
+  @media (max-width:820px){
+    #tab-panel-billboard .card{padding-left:12px;padding-right:12px}
+    .bb-edit{gap:12px}
+  }
+  .bb-stagecol{min-width:0;min-height:0}
+  /* The billboard pane has its own save bar, so the page's reserved strip for the
+     account forms' save bar (main's 96px bottom padding) is dead space here - hand
+     it to the editor instead of leaving it blank.  The sibling selector keeps the
+     rule off whenever that bar is actually on screen. */
+  #savebar.hide ~ #tab-panel-billboard{margin-bottom:-96px}
+  @media (min-width:1151px){
+    .bb-stagecol{max-height:var(--bbh);overflow-y:auto;padding-right:6px}
+    .bb-insp{max-height:var(--bbh)}
+  }
+  .bb-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  .bb-tools .hint{margin:0}
+  .bb-stage{position:relative;width:100%;max-width:694px;border:1px solid var(--line);
+        border-radius:12px;overflow:hidden;background:#f4fafe;user-select:none}
+  .bb-stage canvas{display:block;width:100%;height:auto}
+  .bb-over{position:absolute;inset:0}
+  .bb-over .el{position:absolute;box-sizing:border-box;border:1px dashed rgba(28,127,181,.75);
+        cursor:move}
+  .bb-over .el.on{border:2px solid var(--amber);box-shadow:0 0 0 1px rgba(20,60,90,.35) inset}
+  .bb-over .el .tag{position:absolute;top:-15px;left:0;font-size:9.5px;line-height:1.6;
+        padding:0 5px;border-radius:5px;background:rgba(255,255,255,.9);color:#111111;
+        white-space:nowrap;pointer-events:none}
+  .bb-over .el.on .tag{background:#16688f;color:#ffffff}
+  .bb-over .el .h{position:absolute;right:-6px;bottom:-6px;width:13px;height:13px;
+        border-radius:3px;background:var(--amber);border:1px solid #16688f;cursor:nwse-resize}
+  .bb-over .el.pic .h{border-radius:50%}
+  .bb-over .emptyhint{position:absolute;left:0;right:0;bottom:10px;text-align:center;
+        font-size:11px;color:#111111;text-shadow:0 1px 3px rgba(20,60,90,.45)}
+  .bb-nudge{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+  .bb-nudge .hint{margin:0}
+  /* the save-card bar and the game's current card, side by side: the reference image
+     is worth having on screen, but not at the price of a taller column */
+  .bb-under{display:grid;grid-template-columns:minmax(0,1fr) 140px;gap:12px;align-items:start;
+        margin-top:6px;padding-top:10px;border-top:1px solid var(--line)}
+  .bb-under .bb-bar{margin:0;padding-top:0;border-top:none;display:block}
+  @media (max-width:1150px){ .bb-under{grid-template-columns:minmax(0,1fr)} }
+  .bb-insp{display:flex;flex-direction:column;gap:10px;min-width:0}
+  /* the tab strip: the active tab is amber and carries an underline the full width
+     of its button, so which pane you are looking at is never in doubt */
+  .bb-tabs{display:flex;gap:5px;flex:0 0 auto;border-bottom:1px solid var(--line-2)}
+  .bb-tabs button{flex:1 1 0;min-width:0;font:inherit;font-size:11.5px;font-weight:600;
+        padding:7px 3px 6px;border:1px solid var(--line);border-bottom:none;
+        border-radius:9px 9px 0 0;background:#eef8fd;color:var(--dim);cursor:pointer;
+        letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bb-tabs button:hover{color:var(--txt);border-color:var(--line-2);background:#e3f3fb}
+  .bb-tabs button.on,.bb-tabs button.on:hover{background:#ffffff;
+        border-color:#2196c9;color:#16688f;box-shadow:inset 0 -2px 0 #2196c9}
+  .bb-tabs button:focus-visible{outline:2px solid #2196c9;outline-offset:-2px}
+  /* only the chosen pane is shown, and it - never the page - is what scrolls */
+  .bb-tabpanes{flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:2px}
+  .bb-tabpane{display:none}
+  .bb-tabpane.on{display:grid;gap:12px;align-content:start}
+  /* save + messages live below the panes so they are reachable from every tab */
+  .bb-foot{flex:0 0 auto;display:grid;gap:8px}
+  .bb-box{background:#f4fafe;border:1px solid var(--line);border-radius:12px;padding:12px;
+        min-width:0}
+  .bb-box h4{margin:0 0 9px;font-size:11.5px;letter-spacing:.6px;text-transform:uppercase;
+        color:var(--dim)}
+  .bb-box label{display:block;font-size:11px;color:var(--dim);margin:0 0 3px}
+  .bb-box .row{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px}
+  .bb-box .row > div{min-width:0}
+  .bb-box input[type=text],.bb-box input[type=number],.bb-box select,.bb-box textarea,
+  .bb-box input[type=file]{width:100%;background:var(--field);border:1px solid var(--line);
+        color:var(--txt);border-radius:8px;padding:5px 7px;font:inherit;font-size:12px;
+        box-sizing:border-box}
+  .bb-box input[type=color]{width:34px;height:27px;padding:1px;background:var(--field);
+        border:1px solid var(--line);border-radius:7px;flex:0 0 auto}
+  .bb-col{display:flex;gap:6px;align-items:center;min-width:0}
+  .bb-col .bb-hex{min-width:0;font-family:ui-monospace,monospace;font-size:11px}
+  .bb-pair{display:flex;gap:6px;align-items:center;min-width:0}
+  .bb-pair input[type=range]{flex:1 1 auto;min-width:0;width:auto;padding:0}
+  .bb-pair input[type=number]{flex:0 0 58px;width:58px}
+  .bb-pair .u{font-size:10.5px;color:var(--dim);flex:0 0 auto}
+  .bb-box .chk{margin:0 0 6px}
+  .bb-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .bb-chips button{font:inherit;font-size:11.5px;padding:4px 9px;border-radius:8px;
+        border:1px solid var(--line);background:transparent;color:var(--dim);cursor:pointer}
+  .bb-chips button:hover{color:var(--txt);border-color:#8fb8cd}
+  .bb-chips button.on,.bb-chips button.on:hover{border-color:#2196c9;color:#111111}
+  .bb-vid{width:100%;max-width:420px;margin:8px 0 4px;border:1px solid var(--line);
+        border-radius:10px;background:#000;display:block}
+  .bb-thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .bb-thumbs button{padding:0;border:1px solid var(--line);border-radius:7px;background:#000;
+        cursor:pointer;line-height:0}
+  .bb-thumbs button:hover{border-color:#2196c9}
+  .bb-thumbs img{width:62px;height:46px;object-fit:cover;border-radius:6px;display:block}
+  /* ── admin: where the client lives ──────────────────────────────────── */
+  .fstate{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .fpath{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--dim);
+        min-width:0;overflow-wrap:anywhere}
+  .cands{display:grid;border:1px solid var(--line);border-radius:12px;background:#ffffff;
+        padding:2px 14px;margin-top:8px}
+  .cand{display:flex;align-items:center;gap:12px;padding:10px 0}
+  .cand + .cand{border-top:1px solid var(--line)}
+  .cand .p{min-width:0;flex:1 1 auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+        font-size:11.5px;color:var(--txt);overflow-wrap:anywhere}
+  .cand .btn{flex:0 0 auto}
+  /* ── the player card ─────────────────────────────────────────────────── */
+  .pcard-head{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+  .pcard-look{width:132px;flex:0 0 auto;background:#ffffff;border:1px solid var(--line);
+        border-radius:14px;padding:12px;text-align:center}
+  .pcard-look .big{font-size:38px;font-weight:600;color:var(--amber);line-height:1.1}
+  .pcard-look img{display:block;width:108px;height:126px;margin:0 auto;
+        object-fit:contain;object-position:bottom center}
+  .pcard-look .who{font-size:11.5px;color:var(--dim);margin-top:6px}
+  .pcard-who{flex:1 1 260px;min-width:0}
+  .pcard-who h2{margin:0 0 4px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .pcard-who .sub{color:var(--dim);font-size:12px;line-height:1.7}
+  .gcards{display:grid;gap:12px;margin-top:6px}
+  .gcard{background:#ffffff;border:1px solid var(--line);border-radius:14px;padding:14px}
+  .gcard .ghead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .gcard .ghead b{font-size:13.5px}
+  .gcard .ghead .pill{margin-left:auto}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px}
+  .tile{background:#111;border:1px solid var(--line);border-radius:10px;padding:10px 11px}
+  .tile b{display:block;font-size:19px;font-weight:600;line-height:1.15;
+        overflow-wrap:anywhere}
+  .tile.texty b{font-size:14px;color:var(--dim)}
+  .tile span{display:block;font-size:11.5px;color:var(--txt);margin-top:1px}
+  .tile i{display:block;font-size:11px;color:var(--dim);margin-top:3px;font-style:normal}
+  .gcard .none{color:var(--dim);font-size:12.5px}
+  /* the standings, as a table: a named header row and one right-aligned
+     monospace column per number, so the digits line up down the page */
+  .board{display:grid;gap:0;border:1px solid var(--line);border-radius:12px;
+        background:#ffffff;overflow:hidden;margin-top:6px}
+  .board .brow{display:grid;grid-template-columns:38px minmax(0,1fr) auto;
+        align-items:center;gap:10px;padding:9px 12px}
+  .board .brow + .brow{border-top:1px solid var(--line)}
+  .board .bhead{padding:8px 12px;background:#eef8fd;border-bottom:1px solid var(--line);
+        font-size:10px;letter-spacing:1.1px;text-transform:uppercase;color:var(--dim)}
+  .board .brow.me{background:#e3f3fb}
+  .board .r{color:var(--dim);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+  .board .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+  .board .nums{display:flex;justify-content:flex-end;
+        font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--dim)}
+  .board .nums .s{width:82px;text-align:right;color:var(--txt)}
+  .board .nums .c{width:70px;text-align:right}
+  .board .nums .i{width:62px;text-align:right}
+  /* figures line up column by column, whatever the digits are */
+  .board .nums{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+  .board .brow.me .n,.board .brow.me .s{color:var(--amber)}
+  /* the character: one small box per part, the value in monospace, and the parts
+     this account actually saved in amber */
+  .parts{display:grid;grid-template-columns:repeat(auto-fill,minmax(126px,1fr));gap:6px;margin-top:8px}
+  .parts .part{background:#111;border:1px solid var(--line);border-radius:10px;padding:7px 10px;
+        display:flex;align-items:center;gap:10px;justify-content:space-between;font-size:11.5px;
+        color:var(--dim);min-width:0}
+  .parts .part .k{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .parts .part b{color:var(--txt);font-weight:500;flex:0 0 auto;
+        font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;
+        white-space:nowrap}
+  .parts .part.mine{border-color:var(--amber-line);background:var(--amber-bg);color:var(--amber)}
+  .parts .part.mine b{color:var(--amber)}
+  /* ── phone: 390px is the width this page is actually read at, so these rules
+        come last: they have to beat the desktop definitions above ─────────── */
+  @media(max-width:480px){
+    /* one text field per row: side by side, a 150px email box clips its value */
+    .grid{grid-template-columns:minmax(0,1fr)}
+    .grid.tight,#tab-panel-stats .grid{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
+    .rail{padding:6px}
+    .session .avatar{width:34px;height:34px;flex:0 0 34px}
+    .acct{flex-wrap:wrap}
+    /* the character reads better as one attribute per row down here than as two
+       cramped 170px columns, and the stars need a thumb-sized target */
+    .parts{grid-template-columns:minmax(0,1fr)}
+    .parts .part{font-size:12px;padding:8px 11px}
+    .stars .st{font-size:26px;padding:1px 6px}
+    .actions{flex-wrap:wrap}
+    .acct .actions{width:100%;justify-content:flex-end}
+    /* a full-width save bar: on a phone the save button should be the easiest
+       thing on the page to hit */
+    .savebar{flex-wrap:wrap}
+    .savebar .btn{width:100%;justify-content:center}
+    .savebar #save-note{margin-left:0;width:100%;text-align:left}
+    .board .bhead{display:none}
+    .board .brow{grid-template-columns:30px minmax(0,1fr);gap:2px 10px;padding:10px 12px}
+    .board .nums{grid-column:2;justify-content:flex-start;gap:10px;font-size:12px;color:var(--txt)}
+    .board .nums .s::before{content:"score "}
+    .board .nums .c::before{content:"coins "}
+    .board .nums .i::before{content:"items "}
+    .board .nums .s,.board .nums .c,.board .nums .i{width:auto;text-align:left}
+    .parts{grid-template-columns:repeat(auto-fill,minmax(146px,1fr))}
+    .dobleg{font-size:9.5px;letter-spacing:.7px}
+    /* the date and the stars each get the full width: side by side, the star row
+       and its None button squeeze the date field */
+    #bb-pane .grid{grid-template-columns:minmax(0,1fr)}
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     SKY-BLUE THEME — the launcher's own light Little Prince look
+     ──────────────────────────────────────────────────────────────────────────
+     Re-skins every screen above; it changes colours, frames and the type face
+     only, never a size that the billboard editor's fit-to-window maths or the
+     test harness depends on.  Where it comes from:
+       · page sky + star field   CSS-only: a flat #d9eefb with faint star tiles
+                                 (the publisher's BG.jpg was removed by request)
+       · header mark             their favicon.ico frame, as /web/theme/logo.png
+       · panel surfaces          white, #bcdcf0 soft-blue hairline and 13px
+                                 rounded corners — the treatment the publisher's
+                                 own content panels use, in the page's own palette
+       · divider rule            their css/both/images/line.png
+       · cover picture           their own LPO portal card (dlimg_prince1.png)
+       · ink, sky and accent     the in-game UI's sky: white surfaces, near-black
+                                 ink (#111111 / #3f4d59), and one deep sky blue
+                                 accent (#16688f text, #2196c9 fill/border)
+       · type                    Nunito, a rounded Latin face to match the game's
+                                 華康儷特圓(P); CJK falls back to the game's own
+                                 faces.  The publisher's subset woff has no Latin
+                                 glyphs at all, so it can never be used here.
+     Every colour below is checked for contrast: no light ink on a light surface
+     and every text/accent pair >= 4.5:1 (computed audit, not by eye).
+     ══════════════════════════════════════════════════════════════════════════ */
+  @font-face{
+    font-family:Nunito;font-style:normal;font-weight:400;font-display:swap;
+    src:url("/web/theme/nunito-400.woff2") format("woff2");
+  }
+  @font-face{
+    font-family:Nunito;font-style:normal;font-weight:700;font-display:swap;
+    src:url("/web/theme/nunito-700.woff2") format("woff2");
+  }
+  :root{
+    /* ── the sky-blue theme: white surfaces, black ink, one blue accent ──── */
+    --bg:#d9eefb;              /* the pale page sky (kept) */
+    --sky:#a9dcf4;             /* the sky band on parent surfaces */
+    --panel:#ffffff;           /* white panel (cards, rail, sheets) */
+    --panel-2:#f4fafe;         /* the palest blue sub-panel */
+    --sunk:#eaf6fd;            /* a sunk blue surface */
+    --sunk-2:#dceffa;
+    --field:#ffffff;           /* input fill */
+    --line:#bcdcf0;            /* soft blue hairline */
+    --line-2:#a9d3ea;          /* the same hairline, decided */
+    --txt:#111111;             /* black ink on light surfaces */
+    --dim:#3f4d59;             /* muted ink (8.7:1 on white) */
+    --amber:#19719e;           /* the text accent: deep sky blue (6.2:1) */
+    --gold:#2196c9;            /* the fill accent */
+    --gold-2:#2196c9;
+    --amber-line:#a9d3ea;
+    --amber-bg:#e3f3fb;        /* the selected pill's pale blue */
+    --good:#1a7f37;
+    --bad:#c0392b;
+    --maroon:#8ecfec;          /* the sign-in sheet's border, sky now */
+    --navy:#bcdcf0;            /* their own panel hairline */
+    --font:Nunito,"Noto Sans CJK TC","Microsoft JhengHei","PingFang TC",
+           "Hiragino Sans GB","WenQuanYi Micro Hei",system-ui,-apple-system,
+           "Segoe UI",sans-serif;
+    --frame:url("/web/theme/white_rL_top.png"),url("/web/theme/white_rR_top.png"),
+            url("/web/theme/white_rL_bottom.png"),url("/web/theme/white_rR_bottom.png"),
+            url("/web/theme/white_top.png"),url("/web/theme/white_bottom.png"),
+            url("/web/theme/white_left.png"),url("/web/theme/white_right.png");
+    --frame-pos:left top,right top,left bottom,right bottom,
+                13px top,13px bottom,left 13px,right 13px;
+    --frame-rep:no-repeat,no-repeat,no-repeat,no-repeat,
+                repeat-x,repeat-x,repeat-y,repeat-y;
+  }
+  html{background:#d9eefb}
+  body{
+    color:var(--txt);font-family:var(--font);
+    /* CSS-only sky: ONE flat colour (a gradient reads as a band) with faint
+       star tiles over it.  No publisher artwork. */
+    background-color:#d9eefb;
+    background-image:
+      radial-gradient(circle at 12% 18%, rgba(255,255,255,.85) 0 1.5px, transparent 1.6px),
+      radial-gradient(circle at 34% 44%, rgba(255,255,255,.70) 0 1.2px, transparent 1.3px),
+      radial-gradient(circle at 57% 11%, rgba(255,255,255,.80) 0 1.4px, transparent 1.5px),
+      radial-gradient(circle at 79% 34%, rgba(255,255,255,.65) 0 1.1px, transparent 1.2px),
+      radial-gradient(circle at 91% 63%, rgba(255,255,255,.55) 0 1.3px, transparent 1.4px);
+    background-repeat:repeat,repeat,repeat,repeat,repeat;
+    background-size:260px 220px,320px 260px,210px 190px,300px 240px,240px 210px;
+    background-attachment:fixed,fixed,fixed,fixed,fixed;
+  }
+  a{color:#19719e}
+  a:hover{color:#16688f}
+  .mono,#save-note,.fpath,.cand .p,.acct .mono-av,#p-meta,.board .nums,
+  .board .r,.tile b,.pcard-look .big,.bb-col .bb-hex,input[inputmode="numeric"]{
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+
+  /* ── header: the publisher's mark, on their own sky ──────────────────── */
+  header{background:#a9dcf4;
+         background-image:linear-gradient(180deg,#b6e3f7,#a9dcf4);
+         border-bottom:none;box-shadow:0 3px 14px rgba(20,90,140,.20)}
+  /* their own divider rule under the bar, over the sky */
+  header::after{content:"";display:block;height:5px;
+         background:url("/web/theme/line.png") repeat-x center top}
+  .bar{padding:12px 16px;gap:12px}
+  .brand .mark{width:38px;height:38px;flex:0 0 38px;border-radius:9px;
+         border:1px solid #2196c9;background:#ffffff;padding:1px;
+         box-shadow:0 1px 3px rgba(20,90,140,.18)}
+  .brand h1{font-size:16px;font-weight:700;letter-spacing:.1px;color:#0d2734}
+  .brand .sub{color:var(--dim);font-size:11.5px}
+
+  /* ── the page frame ──────────────────────────────────────────────────── */
+  main{max-width:1120px;padding:18px 16px 96px;gap:20px;
+       grid-template-columns:252px minmax(0,1fr)}
+
+  /* the rail is the publisher's white panel: white fill, navy hairline, 13px
+     rounded corners.  Drawn with CSS rather than their frame images because the
+     rail scrolls when the board is long, and a background image would ride up
+     with the content. */
+  .rail{top:92px;max-height:calc(100vh - 150px);gap:3px;padding:10px;
+        background:#ffffff;border:1px solid #bcdcf0;border-radius:13px;
+        box-shadow:0 6px 18px rgba(20,90,140,.10)}
+  .rail .rl{color:#1c5f7d;font-size:10px;letter-spacing:1.4px;padding:10px 8px 4px;
+        font-weight:700}
+  .rail .grp{margin-top:9px;padding-top:9px;border-top:1px solid var(--line)}
+  .rail button{border-radius:9px;padding:8px 9px;color:var(--dim);font-size:13px}
+  .rail button:hover{background:var(--sunk);border-color:var(--line);color:var(--txt)}
+  /* the section you are in: a parchment pill with a gold star edge */
+  .rail button.on{background:var(--amber-bg);border-color:var(--line-2);color:#111111;
+        box-shadow:inset 3px 0 0 var(--gold-2)}
+  .rail button.on svg.i{stroke:var(--gold-2)}
+  .subnav button.on{background:var(--sunk);border-color:transparent;color:#111111;
+        box-shadow:inset 3px 0 0 var(--gold-2)}
+  .subnav button.on svg.i{stroke:var(--gold-2)}
+  #adminnav .item{border-radius:9px;color:var(--dim)}
+  #adminnav .item:hover{background:var(--sunk);border-color:var(--line);color:var(--txt)}
+  #adminnav .item[aria-current="true"]{background:var(--sunk);color:#111111;
+        box-shadow:inset 3px 0 0 var(--gold-2)}
+  #adminnav .item .t span,#adminnav .item .t .meta,#adminnav .item .t .meta .st{color:var(--dim)}
+  #adminnav .idx,#adminnav .railnote{color:var(--dim)}
+  #adminnav .add{border-color:var(--line-2);color:var(--dim);background:var(--panel)}
+  #adminnav .add:hover{color:#111111;border-color:var(--gold-2);background:var(--sunk-2)}
+  .railsep{border-top:1px solid var(--line)}
+  #adminnav .item[aria-current="true"] .pill{border-color:#a9d3ea;
+        background:#e3f3fb;color:#111111}
+  @media(max-width:820px){
+    main{padding:12px 12px 92px;gap:14px}
+    .rail{background:#ffffff;border:1px solid #bcdcf0;border-radius:13px;padding:10px}
+  }
+
+  /* ── panels: the publisher's own white framed table ──────────────────── */
+  .card{position:relative;background-color:#ffffff;background-image:none;
+        border:1px solid #bcdcf0;border-radius:13px;padding:22px;
+        box-shadow:0 8px 22px rgba(20,90,140,.10)}
+  /* a gold rule under every card's first heading, like a storybook chapter head */
+  .card > h2{color:#111111;font-size:15px;font-weight:700;letter-spacing:.2px}
+  .card > h2::after{content:"";display:block;width:64px;height:3px;margin-top:7px;
+        border-radius:2px;background:linear-gradient(90deg,var(--gold-2),rgba(33,150,201,0))}
+  h2{font-weight:700}
+  h3{color:#19719e;font-size:11px;letter-spacing:.9px;font-weight:700}
+  h3.sh::after{background:var(--line);height:1px}
+  .hint{color:var(--dim)}
+  .hint.ok{color:var(--good)}
+  .hint.err{color:var(--bad)}
+  .eyebrow{color:#19719e;font-weight:700}
+
+  /* parchment sub-panels inside the white card: the in-game panel language */
+  .block,.bb-box,.session,.preview,.cands,.gcard,.pcard-look,.recent-list,
+  .home-card .list,.list .world,.list .acct{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:12px;
+    box-shadow:inset 0 0 0 1px rgba(33,150,201,.07)}
+  .block{background:var(--panel-2);padding:14px}
+  .list .world,.list .acct{background:var(--panel)}
+  .list .world:hover{border-color:var(--line-2);background:var(--sunk)}
+  .list .acct:hover{border-color:var(--line-2)}
+  .list .acct.me{border-color:var(--gold-2);background:var(--amber-bg)}
+  .list .acct.me .mono-av{border-color:var(--line-2);color:#111111}
+  .list .world.on{border-color:var(--gold-2);background:var(--amber-bg)}
+  .world .widx{color:var(--dim)}
+  .world.on .widx,.world.on .tag{color:#111111}
+  .world .tag{color:var(--dim)}
+  .home-card{background-color:#ffffff;
+        background-image:radial-gradient(ellipse at top right,rgba(33,150,201,.10) 0,transparent 62%)}
+  .home-card h2{font-size:28px;color:#111111}
+  .pavatar-ring{border:2px solid #2196c9;background:#eaf6fd;
+        box-shadow:0 0 0 4px rgba(33,150,201,.22)}
+
+  /* ── chips, pills, tabs ──────────────────────────────────────────────── */
+  .pill{border:1px solid var(--line);background:var(--sunk);color:var(--dim);font-weight:700}
+  .pill.amber,#adminnav .item[aria-current="true"] .pill{
+        border-color:#a9d3ea;background:#e3f3fb;color:#111111}
+  .pill.good{border-color:#a8d8b4;background:#f2fbf5;color:var(--good)}
+  .pill.bad{border-color:#e0a8a8;background:#fff5f4;color:var(--bad)}
+  .chip{border:1px solid var(--line);background:var(--sunk);color:var(--dim)}
+  .chip.amber{border-color:#a9d3ea;background:#e3f3fb;color:#111111}
+  .tab{background:var(--sunk);border:1px solid var(--line);color:var(--dim)}
+  .tab:hover{border-color:var(--line-2);color:var(--txt);background:var(--sunk-2)}
+  .tab.on{border-color:var(--line-2);background:var(--amber-bg);color:#111111}
+  code{background:var(--sunk);border:1px solid var(--line);color:#111111}
+  .gtabs button{background:#ffffff;border:1px solid #bcdcf0;color:var(--dim)}
+  .gtabs button:hover{color:var(--txt);background:var(--sunk-2)}
+  .gtabs button.on{background:var(--amber-bg);border-color:var(--gold-2);color:#111111;
+        font-weight:700}
+  .gcard .ghead b,.gstatus .ghead b{color:#111111}
+  .recent-list .score{color:#111111}
+  .recent-list .when{color:var(--dim)}
+  .tile{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+  .tile b{color:#111111}
+  .tile span{color:var(--txt)}
+  .tile i{color:var(--dim)}
+  .tile.texty b{color:var(--dim)}
+  .parts .part{background:var(--panel);border:1px solid var(--line);color:var(--dim)}
+  .parts .part b{color:var(--txt)}
+  .parts .part.mine{border-color:var(--gold-2);background:var(--amber-bg);color:#111111}
+  .parts .part.mine b{color:#111111}
+
+  /* ── tables and lists ────────────────────────────────────────────────── */
+  .board{background:#ffffff;border:1px solid #bcdcf0;border-radius:12px}
+  .board .brow + .brow{border-top:1px solid var(--line)}
+  .board .bhead{background:var(--sunk-2);border-bottom:1px solid var(--line-2);
+        color:var(--dim);font-weight:700}
+  .board .brow:hover{background:var(--sunk)}
+  .board .brow.me{background:var(--amber-bg)}
+  .board .brow.me .n,.board .brow.me .s{color:#111111}
+  .board .n{color:var(--txt)}
+  .board .r,.board .nums{color:var(--dim)}
+  .board .nums .s{color:var(--txt)}
+  .cands{padding:2px 14px}
+  .cand + .cand{border-top:1px solid var(--line)}
+  .fpath{color:var(--dim)}
+  .empty{color:var(--dim)}
+  .row .t b{color:var(--dim)}
+  .dobleg{color:var(--dim)}
+
+  /* ── fields ──────────────────────────────────────────────────────────── */
+  label{color:var(--dim);font-weight:700}
+  input,select,textarea{background:var(--field);border:1px solid var(--line-2);
+        color:var(--txt);border-radius:10px}
+  input::placeholder,textarea::placeholder{color:#7b8b96}
+  input:focus,select:focus,textarea:focus{border-color:#2196c9;
+        box-shadow:0 0 0 3px rgba(33,150,201,.25)}
+  input:disabled{color:var(--dim);background:var(--sunk-2);border-color:var(--line)}
+  input[type=checkbox]{background:#ffffff;border:1px solid #a9d3ea;border-radius:5px}
+  input[type=checkbox]:checked{background:#2196c9;border-color:#2196c9}
+  input[type=checkbox]:checked::after{background:#ffffff;border-radius:2px}
+  input[type=checkbox]:hover{border-color:var(--gold-2)}
+  select{background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),
+                       linear-gradient(135deg,var(--dim) 50%,transparent 50%)}
+  .chk{color:var(--txt)}
+
+  /* ── buttons: gold for the one action that matters, parchment for the rest ── */
+  .btn{border-radius:11px;border:1px solid var(--line-2);background:var(--panel);
+       color:#111111;font-weight:700;box-shadow:0 1px 2px rgba(20,90,140,.10)}
+  .btn:hover{border-color:#2196c9;background:var(--sunk-2);color:#111111}
+  .btn:active{box-shadow:inset 0 2px 4px rgba(20,90,140,.18)}
+  .btn.primary{background:#8ecfec;
+       border:1px solid #2196c9;color:#111111;
+       text-shadow:none;
+       box-shadow:0 2px 3px rgba(20,90,140,.22)}
+  .btn.primary:hover{background:#a9dcf4;
+       color:#111111}
+  .btn.ghost{background:transparent;color:var(--dim);border-color:var(--line);
+       box-shadow:none}
+  .btn.ghost:hover{background:var(--sunk);color:var(--txt);border-color:var(--line-2)}
+  .btn.danger{color:var(--bad);border-color:#e0a8a8;background:#fff5f4}
+  .btn.danger:hover{background:#fdecea;border-color:var(--bad);color:var(--bad)}
+  .btn.icon{background:var(--panel)}
+  button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,
+  textarea:focus-visible{outline:2px solid #2196c9;outline-offset:2px}
+
+  /* ── messages ────────────────────────────────────────────────────────── */
+  .msg{background:var(--panel-2);border:1px solid var(--line);
+       border-left:4px solid var(--line-2);color:var(--dim);border-radius:10px}
+  .msg.ok{border-color:#a8d8b4;border-left-color:var(--good);background:#f2fbf5;
+       color:var(--good)}
+  .msg.err{border-color:#e0a8a8;border-left-color:var(--bad);background:#fff5f4;
+       color:var(--bad)}
+  .toast{background:var(--panel);border:1px solid var(--line-2);color:var(--txt);
+       box-shadow:0 8px 24px rgba(20,90,140,.20)}
+  .toast .dot{background:#2c6b34}
+
+  /* ── the session strip, the save bar ─────────────────────────────────── */
+  .session #p-meta{color:var(--dim)}
+  .avatar{background:#eaf6fd;border:1px solid #a9d3ea;color:#111111}
+  .savebar{background:#ffffff;border-top:1px solid #bcdcf0}
+  .savebar #save-note{color:var(--dim)}
+
+  /* ── the two publisher-style forms (their account page: a cream sheet in a
+        a white sheet in a sky-blue frame) ───────────────────────────────── */
+  #tab-login .grid,#tab-register .grid{
+    background:#ffffff;border:3px solid #a9dcf4;border-radius:18px;
+    padding:16px 16px 18px;gap:12px;
+    box-shadow:inset 0 0 0 2px rgba(33,150,201,.08)}
+  #tab-login .grid label,#tab-register .grid label{color:#111111}
+  #tab-login .grid input,#tab-register .grid input,#tab-register .grid select,
+  #tab-login .grid select,#tab-register .grid textarea{
+    background:#ffffff;border-color:#a9d3ea;color:#111111}
+  /* the sign-in sheet carries the publisher's own card art, the way their portal
+     puts it beside the entry form */
+  #tab-login{min-height:260px}
+  #tab-login .lp-cover{position:absolute;top:22px;right:24px;width:200px;
+    text-align:center}
+  #tab-login .lp-cover img{width:100%;height:auto;display:block;border-radius:12px;
+    border:1px solid var(--line-2);box-shadow:0 6px 16px rgba(2,20,48,.22)}
+  #tab-login .lp-cover span{display:block;margin-top:7px;font-size:10.5px;
+    letter-spacing:.6px;color:var(--dim);text-transform:uppercase}
+  @media(max-width:900px){
+    #tab-login{padding-right:22px;min-height:0}
+    #tab-login .lp-cover{position:static;width:200px;margin:0 auto 16px}
+  }
+
+  /* ── the billboard editor ────────────────────────────────────────────── */
+  /* the editor is a workspace, so its card keeps a narrower gutter than the
+     reading cards: at 22px the canvas loses ~12px of width, and that width is
+     the whole point of this pane */
+  #tab-panel-billboard.card{padding:20px 14px 16px}
+  .bb-tools .hint,.bb-nudge .hint{color:var(--dim)}
+  .bb-stage{border:2px solid var(--line-2);border-radius:12px;background:#fff;
+        box-shadow:inset 0 0 0 3px var(--panel-2)}
+  .bb-over .el{border:1px dashed rgba(28,127,181,.9);
+        outline:1px dashed rgba(33,150,201,.45);outline-offset:1px}
+  .bb-over .el.on{border:2px solid var(--gold-2);outline:1px solid rgba(20,60,90,.35);
+        box-shadow:0 0 0 1px rgba(33,150,201,.35) inset}
+  .bb-over .el .tag{background:rgba(255,255,255,.94);color:#111111;border:1px solid #a9d3ea}
+  .bb-over .el.on .tag{background:#2196c9;color:#111111;border-color:#16688f}
+  .bb-over .el .h{background:var(--gold);border:1px solid var(--maroon)}
+  .bb-over .emptyhint{color:#111111;background:rgba(255,255,255,.88);border-radius:8px;
+        padding:2px 10px;display:inline-block;text-shadow:none;left:50%;right:auto;
+        transform:translateX(-50%)}
+  .bb-tabs{border-bottom:2px solid var(--line-2)}
+  .bb-tabs button{border:1px solid var(--line-2);border-bottom:none;
+        background:var(--sunk);color:var(--dim);border-radius:9px 9px 0 0}
+  .bb-tabs button:hover{color:var(--txt);background:var(--sunk-2);border-color:var(--gold-2)}
+  .bb-tabs button.on,.bb-tabs button.on:hover{background:#ffffff;
+        border-color:#2196c9;color:#19719e;box-shadow:inset 0 -3px 0 #2196c9}
+  .bb-tabs button:focus-visible{outline:2px solid #2196c9;outline-offset:-2px}
+  .bb-box{background:var(--panel-2)}
+  .bb-box h4{color:#111111;font-weight:700}
+  .bb-box label{color:var(--dim);font-weight:700}
+  .bb-box input[type=text],.bb-box input[type=number],.bb-box select,
+  .bb-box textarea,.bb-box input[type=file]{background:var(--field);
+        border:1px solid var(--line-2);color:var(--txt);border-radius:8px}
+  .bb-box input[type=color]{background:var(--field);border:1px solid var(--line-2)}
+  .bb-box input[type=checkbox]{background:#ffffff}
+  .bb-chips button{border:1px solid var(--line-2);background:var(--panel);color:var(--dim)}
+  .bb-chips button:hover{color:#111111;border-color:#2196c9;background:var(--sunk-2)}
+  .bb-chips button.on,.bb-chips button.on:hover{border-color:#2196c9;
+        background:#e3f3fb;color:#111111}
+  .bb-vid{background:#000;border:1px solid var(--line-2)}
+  .bb-thumbs button{background:#000;border:1px solid var(--line)}
+  .bb-thumbs button:hover{border-color:var(--gold-2)}
+  .bb-bar{border-top:1px solid var(--line)}
+  .bb-under{border-top:1px solid var(--line)}
+  .bb-pair .u{color:var(--dim)}
+  .bb-col .bb-hex{color:var(--dim)}
+  /* ── the unsaved-changes state ─────────────────────────────────────────
+     One colour pair for both marks (the badge beside the notice's name and
+     the note above the Save box), on the light theme's white/blue surfaces.
+     The pair is a warm red against a pale wash so it reads as "not published
+     yet" without leaving the page's own light palette.  Both are hidden
+     while the card matches what is stored, and by attribute - a class
+     `display` rule would win over the browser's own [hidden] handling. */
+  #bb-dirty[hidden],.bb-dirtynote[hidden]{display:none}
+  .pill.dirty{border-color:#e0958a;background:#fdeceb;color:#8f2317;
+        font-weight:700}
+  .bb-dirtynote{border:1px solid #e0958a;background:#fdeceb;color:#8f2317;
+        border-radius:10px;padding:8px 10px;font-size:11.5px;line-height:1.45;
+        font-weight:600}
+  .bb-dirtynote b{font-weight:800}
+  /* the band's own on/off pair: the same chip treatment everywhere else uses,
+     so "Shown / Hidden" is one click and the state is visible without reading
+     a checkbox */
+  .bb-chips button.hd.on,.bb-chips button.hd.on:hover{border-color:#2196c9;
+        background:#e3f3fb;color:#111111;box-shadow:inset 0 0 0 1px #2196c9}
+  .bb-bandnote{color:var(--dim);font-size:11px;line-height:1.45;margin:8px 0 0}
+  /* the band's own settings, boxed off while the band is off: they keep their
+     values (and come back with it) but change nothing on the card now.  The
+     group is tinted rather than faded - dimming it with opacity would put the
+     labels' contrast under AA, and these still have to be readable. */
+  .bb-bandset{border:1px solid var(--line);border-radius:9px;padding:9px}
+  .bb-bandset.off{border-color:var(--line-2);background:var(--sunk)}
+  /* the little "as it looks in the list" preview simulates the GAME's card, so its
+     two text colours stay legible whatever this page's palette does */
+  .preview{background:var(--panel-2)}
+  .preview .pv-date{color:var(--dim);font-size:11px}
+  .preview .pv-stars{color:#111111;font-weight:700}
+  .preview .pv-title{background:#eaf6fd;border:1px solid #a9d3ea;color:#111111}
+  .preview .pv-art{color:#111111;background:linear-gradient(180deg,#cdeafa,#a9dcf4);
+        border:1px solid #a9d3ea}
+  .stars .st{color:#6b747c}
+  /* the rating glyphs are TEXT, so they take the readable deep gold rather than the
+     bright fill gold: #a9dcf4 on parchment is only 2.7:1 */
+  .stars .st.on{color:#0f6a99}
+  .stars .st:hover{color:#4a5560}
+  .stars .st.on:hover{color:#0f6a99}
+  .arts .btn[aria-current="true"]{border-color:#2196c9;background:var(--amber-bg);color:#111111}
+  /* a 390px window cannot hold six tab labels in one row - they came out 23px wide
+     and read "N…", "C…" - so on a phone the strip wraps into two rows of three.
+     The desktop rule above (one row) is what the harness checks at 1500px. */
+  @media(max-width:520px){
+    .bb-tabs{flex-wrap:wrap;padding-bottom:2px}
+    .bb-tabs button{flex:1 1 calc(33.333% - 4px);padding:9px 3px 8px;border-radius:9px}
+  }
+
+  /* ── the player card, the fits-to-window stage ────────────────────────── */
+  .pcard-look .big{color:#111111}
+  .pcard-look .who{color:var(--dim)}
+  .pcard-who .sub{color:var(--dim)}
+  .gcard .none{color:var(--dim)}
+
+  /* CJK that the game itself supplies (a player name, a title) must not be handed
+     to Nunito - it has no CJK glyphs at all; the stack in --font covers it. */
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">
+      <img class="mark" src="/web/theme/logo.png" alt="Little Prince" width="38" height="38">
+      <div>
+        <h1>Little Prince Launcher — Play Account</h1>
+        <div class="sub">local server · accounts &amp; settings</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="shell">
+  <nav class="rail" id="rail" aria-label="Sections">
+    <div class="rl">Account</div>
+    <div id="tabs">
+      <button data-tab="login" class="on">
+        <svg class="i" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+        Sign in</button>
+      <button data-tab="register">
+        <svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        Register</button>
+      <button data-tab="panel" class="hide">
+        <svg class="i" viewBox="0 0 24 24"><path d="M3 10l9-7 9 7v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 21v-7h6v7"/></svg>
+        Home</button>
+      <button data-tab="board" class="hide">
+        <svg class="i" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v4a5 5 0 01-10 0z"/><path d="M7 6H5a2 2 0 002 2M17 6h2a2 2 0 01-2 2"/></svg>
+        Leaderboard</button>
+      <button data-tab="settings" class="hide">
+        <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M4 12H2M22 12h-2M12 4V2M12 22v-2M6.3 6.3L4.9 4.9M19.1 19.1l-1.4-1.4M17.7 6.3l1.4-1.4M4.9 19.1l1.4-1.4"/></svg>
+        User settings</button>
+    </div>
+    <div id="subnav" class="subnav grp hide">
+      <div class="rl">Settings</div>
+      <button data-sub="personal">
+        <svg class="i" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Profile</button>
+      <button data-sub="account">
+        <svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/></svg>
+        Account</button>
+      <button data-sub="worlds">
+        <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 010 18 15 15 0 010-18"/></svg>
+        Worlds</button>
+      <button data-sub="stats">
+        <svg class="i" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+        Stats</button>
+      <button data-sub="list">
+        <svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        Accounts</button>
+    </div>
+    <!-- server-wide settings, not per-account ones: the castle-hall billboard and
+         where the LPO client lives.  Needs a signed-in account (the API says 401). -->
+    <div id="adminnav" class="grp hide">
+      <div class="rl">Admin</div>
+      <button data-sub="billboard">
+        <svg class="i" viewBox="0 0 24 24"><path d="M4 4h16v12H4z"/><path d="M8 20h8M12 16v4"/>
+          <path d="M8 8h8M8 12h5"/></svg>
+        Billboard <span class="pill" id="bb-count"></span></button>
+      <div id="bb-rows"></div>
+      <button class="add" type="button" id="bb-add">+ Add notice</button>
+      <div class="railsep"></div>
+      <button data-sub="files">
+        <svg class="i" viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg>
+        Game files</button>
+    </div>
+  </nav>
+
+  <div class="panes">
+  <!-- ── sign in ────────────────────────────────────────────────────── -->
+  <section id="tab-login" class="hide card">
+    <h2>Sign in</h2>
+    <p class="hint">Use your login name or your email. The games' own login box takes the same
+      login name and password.</p>
+    <div class="grid" style="grid-template-columns:1fr;margin-top:14px">
+      <div class="field"><label for="li-email">Login name or email</label>
+        <input id="li-email" autocomplete="username" placeholder="player1"></div>
+      <div class="field"><label for="li-pass">Password</label>
+        <input id="li-pass" type="password" autocomplete="current-password"></div>
+    </div>
+    <div class="actions" style="margin-top:14px">
+      <button class="btn primary" onclick="signIn()">
+        <svg class="i" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+        Sign in
+      </button>
+    </div>
+    <div id="li-msg"></div>
+  </section>
+
+  <!-- ── register ───────────────────────────────────────────────────── -->
+  <section id="tab-register" class="hide card">
+    <h2>Create an account</h2>
+    <p class="hint">Afterwards use the same details in the game's login box to play as this character.</p>
+
+    <h3>Login</h3>
+    <div class="grid" style="grid-template-columns:1fr">
+      <div class="field"><label for="rg-email">Email</label>
+        <input id="rg-email" type="email" placeholder="player@example.com"></div>
+      <div class="field"><label for="rg-login_name">Login name</label>
+        <input id="rg-login_name" placeholder="player1" maxlength="20"></div>
+      <p class="hint">This is what you type in the game's login box, not your email &mdash; LP1, LP2
+        and LP3 all show a single name field. Letters, digits, dot, dash or underscore.</p>
+      <div class="field"><label for="rg-pass">Password</label><input id="rg-pass" type="password" maxlength="8" autocomplete="new-password"></div>
+      <div class="field"><label for="rg-pass2">Confirm password</label><input id="rg-pass2" type="password" maxlength="8" autocomplete="new-password"></div>
+      <p class="hint">Up to 8 letters or digits &mdash; the game's login box stops at the eighth character, so a longer one could never be typed there.</p>
+    </div>
+
+    <h3>Player</h3>
+    <div class="grid">
+      <div class="field"><label for="rg-name">Player name</label><input id="rg-name" placeholder="Player One"></div>
+      <div class="field"><label for="rg-sex">Sex</label>
+        <select id="rg-sex"><option value="1">Male</option><option value="0">Female</option></select></div>
+    </div>
+    <div class="field" style="margin-top:10px"><label>Date of birth</label>
+      <div class="grid tight">
+        <select id="rg-year" aria-label="Year"></select>
+        <select id="rg-month" aria-label="Month"></select>
+        <select id="rg-day" aria-label="Day"></select>
+      </div>
+    </div>
+
+    <h3>School <span style="text-transform:none;letter-spacing:0">(optional)</span></h3>
+    <div class="grid">
+      <div class="field"><label for="rg-school">School name</label><input id="rg-school" placeholder="optional"></div>
+      <div class="field"><label for="rg-level">School level</label>
+        <select id="rg-level"><option value="0">Kindergarten</option><option value="1">Primary</option>
+          <option value="2">Secondary</option><option value="3" selected>Other</option></select></div>
+      <div class="field"><label for="rg-class">Class</label>
+        <select id="rg-class"><option value="0" selected>Other</option><option>K1</option><option>K2</option>
+          <option>K3</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option>
+          <option>P5</option><option>P6</option><option>S1</option><option>S2</option><option>S3</option>
+          <option>S4</option><option>S5</option><option>S6</option></select></div>
+      <div class="field"><label for="rg-classno">Class no.</label><input id="rg-classno" value="-"></div>
+    </div>
+
+    <div class="actions" style="margin-top:16px">
+      <button class="btn primary" onclick="register()">
+        <svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        Create account
+      </button>
+    </div>
+    <div id="rg-msg"></div>
+  </section>
+
+  <!-- ── the main menu, shown first after signing in ─────────────────── -->
+  <section id="tab-panel-home" class="hide card home-card">
+    <div class="eyebrow">YOUR LITTLE PRINCE ADVENTURE</div>
+    <div class="home-head">
+      <div class="pavatar-ring"><img class="pavatar" id="home-avatar"
+        src="/web/avatars/default.png" alt=""></div>
+      <h2 id="home-hello">Welcome</h2>
+    </div>
+    <p class="hint" id="home-sub">Your player, your progress. Get ready for your next adventure.</p>
+
+    <h3>Your games</h3>
+    <div class="gtabs" id="home-gtabs" role="tablist" aria-label="Games"></div>
+    <div class="gstatus" id="home-games" aria-live="polite"></div>
+
+    <h3>Make it yours</h3>
+    <div class="actions" style="flex-wrap:wrap;gap:8px">
+      <button class="btn" onclick="showSub('personal')">
+        <svg class="i" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Your profile</button>
+      <button class="btn" onclick="showSub('worlds')">
+        <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 010 18 15 15 0 010-18"/></svg>
+        Worlds</button>
+      <button class="btn" onclick="showSub('stats')">
+        <svg class="i" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+        Stats</button>
+      <button class="btn" onclick="showSub('account')">
+        <svg class="i" viewBox="0 0 24 24"><rect x="3" height="16" width="18" y="4" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/></svg>
+        Account &amp; password</button>
+    </div>
+
+    <h3>Account overview</h3>
+    <div class="list">
+      <div class="row"><span class="t"><b>Login name</b><span id="home-email"></span></span></div>
+      <div class="row"><span class="t"><b>Player name</b><span id="home-name"></span></span></div>
+      <div class="row"><span class="t"><b>Account number</b><span id="home-uid"></span></span></div>
+      <div class="row"><span class="t"><b>Worlds unlocked</b><span id="home-worlds"></span></span></div>
+      <div class="row"><span class="t"><b>Type this at the game's login box</b>
+        <span>the same email and password</span></span></div>
+    </div>
+
+    <h3>Recent play</h3>
+    <div class="recent-list" id="home-recent">
+      <div class="row"><span class="t"><b>Nothing yet</b><span>play a level in the game and it shows up here</span></span></div>
+    </div>
+    <p class="hint">Ready to play? Open the Patcher and choose Select game.</p>
+  </section>
+
+  <!-- ── signed in ──────────────────────────────────────────────────── -->
+  <section id="tab-panel" class="hide card session">
+    <div class="me">
+      <div class="avatar" id="p-initial">?</div>
+      <div class="who">
+        <b id="p-who"></b>
+        <span id="p-meta"></span>
+      </div>
+      <button class="btn ghost sm" onclick="signOut()">
+        <svg class="i" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        Sign out
+      </button>
+    </div>
+  </section>
+
+  <!-- ── profile ────────────────────────────────────────────────────── -->
+  <section id="tab-panel-personal" class="hide card">
+    <h2>Profile</h2>
+    <p class="hint">What the game shows as your character. Saved to this account.</p>
+
+    <h3 class="sh">Identity</h3>
+    <div class="grid">
+      <div class="field"><label for="f-name">Player name</label><input id="f-name"></div>
+      <div class="field"><label for="f-sex">Sex</label>
+        <select id="f-sex"><option value="1">Male</option><option value="0">Female</option></select></div>
+    </div>
+    <div class="grid" style="margin-top:10px">
+      <div class="field"><label for="f-uid">Account uid</label><input id="f-uid" disabled></div>
+      <div class="field"><label for="f-gameLv">Title</label>
+        <input id="f-gameLv" list="gameLv-list" placeholder="e.g. 貴族">
+        <datalist id="gameLv-list">
+          <option value="國民"></option><option value="資深國民"></option>
+          <option value="名人"></option><option value="貴族"></option>
+          <option value="皇室人員"></option><option value="小王子"></option>
+          <option value="小公主"></option>
+        </datalist></div>
+    </div>
+    <div class="field" style="margin-top:10px"><label>Date of birth</label>
+      <div class="dobleg"><span>Year</span><span>Month</span><span>Day</span></div>
+      <div class="grid tight">
+        <select id="f-year" aria-label="Year"></select>
+        <select id="f-month" aria-label="Month"></select>
+        <select id="f-day" aria-label="Day"></select>
+      </div>
+    </div>
+
+    <h3 class="sh">School</h3>
+    <div class="grid">
+      <div class="field"><label for="f-school_name">School name</label><input id="f-school_name"></div>
+      <div class="field"><label for="f-school_level">School level</label>
+        <select id="f-school_level"><option value="0">Kindergarten</option><option value="1">Primary</option>
+          <option value="2">Secondary</option><option value="3">Other</option></select></div>
+      <div class="field"><label for="f-class_name">Class</label>
+        <select id="f-class_name"><option value="0">Other</option><option>K1</option><option>K2</option>
+          <option>K3</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option>
+          <option>P5</option><option>P6</option><option>S1</option><option>S2</option><option>S3</option>
+          <option>S4</option><option>S5</option><option>S6</option></select></div>
+      <div class="field"><label for="f-class_no">Class no.</label><input id="f-class_no"></div>
+    </div>
+    <div id="f-msg"></div>
+    <!-- the outfit the game will draw for this player, rendered from the game's
+         own artwork (it moved here from the player card) -->
+    <div id="look-body"></div>
+  </section>
+
+  <!-- ── account ────────────────────────────────────────────────────── -->
+  <section id="tab-panel-account" class="hide card">
+    <h2>Account</h2>
+    <p class="hint">The name and address the game and this page sign in with.</p>
+
+    <h3 class="sh">Login</h3>
+    <div class="grid">
+      <div class="field"><label for="f-login_name">Login name</label><input id="f-login_name" maxlength="20"></div>
+      <div class="field"><label for="f-email">Email</label><input id="f-email" type="email"></div>
+    </div>
+    <p class="hint">The login name is what you type in the game's login box &mdash; LP1, LP2 and LP3
+      all take it in place of an email. The email is just for signing in here.</p>
+
+    <h3 class="sh">Change password</h3>
+    <div class="block">
+      <div class="field"><label for="pw-old">Current password</label><input id="pw-old" type="password"></div>
+      <div class="grid" style="margin-top:10px">
+        <div class="field"><label for="pw-new">New password</label><input id="pw-new" type="password" maxlength="8" autocomplete="new-password"></div>
+        <div class="field"><label for="pw-new2">Confirm new password</label><input id="pw-new2" type="password" maxlength="8" autocomplete="new-password"></div>
+      </div>
+      <p class="hint">Up to 8 letters or digits — the game's login box stops at the eighth
+        character, so a longer one could never be typed there. Leave the boxes empty to keep
+        the current password.</p>
+      <div id="pw-msg"></div>
+    </div>
+
+    <h3 class="sh">Linked account</h3>
+    <div class="block">
+      <p class="hint">Link another account on this machine, so both characters share one page.</p>
+      <p class="hint">Currently linked: <code id="linked-now">none</code></p>
+      <div class="grid" style="margin-top:10px">
+        <div class="field"><label for="ln-name">Account name (email)</label>
+          <input id="ln-name" type="email" placeholder="other@example.com"></div>
+        <div class="field"><label for="ln-pass">Account password</label><input id="ln-pass" type="password"></div>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn sm" onclick="linkAccount()">
+          <svg class="i" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1"/><path d="M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1"/></svg>
+          Link</button>
+        <button class="btn ghost sm" onclick="unlinkAccount()">Unlink</button>
+      </div>
+      <div id="ln-msg"></div>
+    </div>
+  </section>
+
+  <!-- ── worlds ─────────────────────────────────────────────────────── -->
+  <section id="tab-panel-worlds" class="hide card">
+    <h2>Worlds</h2>
+    <div class="rowhead">
+      <p class="hint"><span id="world-count"></span> Each world covers its five minigames.</p>
+      <div class="actions">
+        <button class="btn ghost sm" onclick="setWorlds(true)">Unlock all</button>
+        <button class="btn ghost sm" onclick="setWorlds(false)">Lock all</button>
+      </div>
+    </div>
+
+    <h3 class="sh">Daily maze</h3>
+    <label class="world" id="maze-row" style="cursor:pointer">
+      <input type="checkbox" id="f-maze_open">
+      <span class="t"><b>Maze open every day</b>
+        <span>The real server only allows the maze once a day; untick to keep that.</span></span>
+    </label>
+
+    <h3 class="sh">Minigame levels</h3>
+    <label class="world" id="unlocklv-row" style="cursor:pointer">
+      <input type="checkbox" id="f-unlock_lv">
+      <span class="t"><b>Every level unlocked</b>
+        <span>Reports full marks on every level at login, so no level is greyed in any world.</span></span>
+    </label>
+
+    <h3 class="sh">Worlds</h3>
+    <div class="list" id="p-worlds" style="margin-top:12px"></div>
+  </section>
+
+  <!-- ── stats ──────────────────────────────────────────────────────── -->
+  <section id="tab-panel-stats" class="hide card">
+    <h2>Stats</h2>
+    <p class="hint">What the game reads as your progress and wallet.</p>
+
+    <h3 class="sh">Wallet</h3>
+    <div class="grid tight">
+      <div class="field"><label for="f-coins">Coins</label><input id="f-coins" inputmode="numeric"></div>
+      <div class="field"><label for="f-totalItems">Items</label><input id="f-totalItems" inputmode="numeric"></div>
+      <div class="field"><label for="f-totalCrystals">Crystals</label><input id="f-totalCrystals" inputmode="numeric"></div>
+    </div>
+
+    <h3 class="sh">Crystals by world</h3>
+    <div class="grid tight">
+      <div class="field"><label for="f-crystal0">World 1</label><input id="f-crystal0" inputmode="numeric"></div>
+      <div class="field"><label for="f-crystal1">World 2</label><input id="f-crystal1" inputmode="numeric"></div>
+      <div class="field"><label for="f-crystal2">World 3</label><input id="f-crystal2" inputmode="numeric"></div>
+      <div class="field"><label for="f-crystal3">World 4</label><input id="f-crystal3" inputmode="numeric"></div>
+      <div class="field"><label for="f-crystal4">World 5</label><input id="f-crystal4" inputmode="numeric"></div>
+    </div>
+
+    <h3 class="sh">Records</h3>
+    <div class="grid">
+      <div class="field"><label for="f-mazeRec">Maze record</label><input id="f-mazeRec"></div>
+      <div class="field"><label for="f-eventData">Event data</label><input id="f-eventData" inputmode="numeric"></div>
+      <div class="field"><label for="f-left_total">Left total</label><input id="f-left_total" inputmode="numeric"></div>
+      <div class="field"><label for="f-right_total">Right total</label><input id="f-right_total" inputmode="numeric"></div>
+    </div>
+    <div id="st-msg"></div>
+  </section>
+
+  <!-- ── accounts on this machine ───────────────────────────────────── -->
+  <section id="tab-panel-list" class="hide card">
+    <h2 class="rowhead" style="margin-top:0">Accounts on this machine <span class="pill" id="acc-count"></span></h2>
+    <p class="hint">Local server only. Load any account to edit it, or delete it &mdash; the amber
+      one is the account this page is signed in as.</p>
+    <div class="rowhead">
+      <div class="field" style="flex:1 1 200px">
+        <input id="acc-filter" placeholder="Filter by name or email" aria-label="Filter accounts"
+          autocomplete="off" oninput="filterAccounts()">
+      </div>
+      <button class="btn ghost sm" onclick="loadList()">
+        <svg class="i" viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        Reload</button>
+    </div>
+    <p class="hint" id="acc-note"></p>
+    <div class="list" id="acc-list" style="margin-top:12px"></div>
+  </section>
+
+  <!-- one save bar for the whole settings panel -->
+  <div id="savebar" class="savebar hide">
+    <button class="btn primary" onclick="saveAccount()">
+      <svg class="i" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+      Save changes
+    </button>
+    <span class="sub" id="save-note"></span>
+  </div>
+  <!-- ── the leaderboard: the publisher's board, but across this machine's
+         accounts, read from their own saved records ─────────────────────── -->
+  <section id="tab-board" class="hide card">
+    <div id="board-body"></div>
+  </section>
+
+  <!-- ── admin: the billboard ─────────────────────────────────────────── -->
+  <section id="tab-panel-billboard" class="hide card">
+    <div id="bb-pane"></div>
+  </section>
+
+  <!-- ── admin: the LPO client folder ──────────────────────────────────── -->
+  <section id="tab-panel-files" class="hide card">
+    <h2>Game files</h2>
+    <p class="hint">Where the Little Prince Online client lives. The server serves the game
+      from this folder, so it has to be the one with <code>index.swf</code> in it.</p>
+    <div id="files-body"></div>
+  </section>
+  </div>
+</main>
+
+<script>
+const FIELDS=["name","email","sex","gameLv","school_name","school_level","class_name","class_no",
+  "coins","totalItems","totalCrystals","crystal0","crystal1","crystal2","crystal3","crystal4",
+  "mazeRec","left_total","right_total","eventData"];
+let ACC=null, WORLDS=[], PERM=0, TARGET=null, SUB="home";
+const NOW=new Date().getFullYear();
+const SUBS=["home","personal","account","worlds","stats","list","billboard","files"];
+
+function $(id){return document.getElementById(id)}
+function msg(el,text,ok){el.innerHTML=text?`<div class="msg ${ok?'ok':'err'}">${text}</div>`:''}
+function fillYears(yearEl,monthEl,dayEl){
+  yearEl.innerHTML=Array.from({length:60},(_,i)=>NOW-5-i).map(y=>`<option>${y}</option>`).join('');
+  monthEl.innerHTML=Array.from({length:12},(_,i)=>String(i+1).padStart(2,'0')).map(m=>`<option>${m}</option>`).join('');
+  dayEl.innerHTML=Array.from({length:31},(_,i)=>String(i+1).padStart(2,'0')).map(d=>`<option>${d}</option>`).join('');
+}
+function setDob(y,m,d){$('f-year').value=y;$('f-month').value=String(m).padStart(2,'0');$('f-day').value=String(d).padStart(2,'0')}
+function getDob(){return `${$('f-year').value}-${$('f-month').value}-${$('f-day').value}`}
+
+/* ── navigation: top tabs, then the settings sub-tabs ───────────────────── */
+let PAGE='panel';
+function renderNavigation(){
+  const signedIn=!!ACC, settings=signedIn && PAGE==='settings';
+  ['login','register'].forEach(t=>$('tab-'+t).classList.toggle('hide', signedIn || PAGE!==t));
+  $('tab-panel').classList.toggle('hide', !signedIn || PAGE==='board');
+  $('tab-board').classList.toggle('hide', !signedIn || PAGE!=='board');
+  SUBS.forEach(s=>$('tab-panel-'+s).classList.toggle('hide',
+    !signedIn || (s==='home' ? PAGE!=='panel' : !settings || s!==SUB)));
+  document.querySelectorAll('#tabs button').forEach(b=>{
+    const privateTab=['panel','board','settings'].includes(b.dataset.tab);
+    b.classList.toggle('hide', privateTab ? !signedIn : signedIn);
+    b.classList.toggle('on', b.dataset.tab===PAGE);
+    b.setAttribute('aria-current', b.dataset.tab===PAGE ? 'page' : 'false');
+  });
+  document.querySelectorAll('#subnav button').forEach(b=>b.classList.toggle('on', b.dataset.sub===SUB));
+  $('subnav').classList.toggle('hide', !settings);
+  $('savebar').classList.toggle('hide',
+    !settings || SUB==='list' || SUB==='billboard' || SUB==='files');
+  document.querySelectorAll('#adminnav button[data-sub]').forEach(b=>{
+    b.classList.toggle('on', b.dataset.sub===SUB);
+    b.setAttribute('aria-current', b.dataset.sub===SUB ? 'true' : 'false');
+  });
+  if(SUB==='billboard'){ bbRail(); bbPane(); }
+  if(SUB==='files') filesRender();
+  $('save-note').textContent=TARGET ? `Saving to ${TARGET}` : (ACC && ACC.email ? `Signed in as ${ACC.email}` : '');
+}
+/* Leaving the billboard pane with edits that were never published asks first -
+   the prompt is the one place the two "unsaved" paths (this and the window's
+   own beforeunload) share their words. */
+function showSub(name){
+  if(SUBS.includes(name) && SUB==='billboard' && name!=='billboard' && !bbLeaveOK()) return;
+  if(SUBS.includes(name)) SUB=name;
+  PAGE=ACC ? (SUB==='home' ? 'panel' : 'settings') : 'login';
+  renderNavigation();
+}
+function show(tab){
+  if(!ACC){ PAGE=(tab==='register' ? 'register' : 'login'); renderNavigation(); return; }
+  const next=(tab==='settings' || tab==='board') ? tab : 'panel';
+  if(next!==PAGE && PAGE==='settings' && SUB==='billboard' && !bbLeaveOK()) return;
+  PAGE=next;
+  if(PAGE==='settings' && SUB==='home') SUB='personal';
+  renderNavigation();
+  if(PAGE==='board') boardLoad();
+}
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{if(!b.classList.contains('hide'))show(b.dataset.tab)});
+document.querySelectorAll('#subnav button').forEach(b=>b.onclick=()=>showSub(b.dataset.sub));
+document.querySelectorAll('#adminnav button[data-sub]').forEach(b=>b.onclick=()=>showSub(b.dataset.sub));
+
+async function api(path,opts){
+  const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'}},opts));
+  let d={}; try{d=await r.json()}catch(e){}
+  return {ok:r.ok,status:r.status,data:d};
+}
+async function register(){
+  if($('rg-pass').value!==$('rg-pass2').value){msg($('rg-msg'),'The two passwords do not match',false);return}
+  if(!/^[A-Za-z0-9]{4,8}$/.test($('rg-pass').value)){msg($('rg-msg'),'Use 4 to 8 letters or digits — the game\'s login box stops at 8',false);return}
+  const loginName=$('rg-login_name').value.trim();
+  if(!/^[A-Za-z0-9._-]{3,20}$/.test(loginName)){msg($('rg-msg'),'The login name needs 3 to 20 letters, digits, dot, dash or underscore — no @',false);return}
+  const body={email:$('rg-email').value.trim(),login_name:loginName,password:$('rg-pass').value,name:$('rg-name').value.trim(),
+    sex:$('rg-sex').value,birth:`${$('rg-year').value}-${$('rg-month').value}-${$('rg-day').value}`,
+    school_name:$('rg-school').value.trim(),school_level:$('rg-level').value,
+    class_name:$('rg-class').value,class_no:$('rg-classno').value.trim()||'-'};
+  const {ok,data}=await api('/web/api/register',{method:'POST',body:JSON.stringify(body)});
+  if(!ok){msg($('rg-msg'),data.error||'Could not create the account',false);return}
+  ACC=data.account;WORLDS=data.worlds;PERM=ACC.profile.permission|0;TARGET=null;SUB="home";
+  msg($('rg-msg'),'Account created and signed in.',true);resetRegisterForm();fill();
+  show(location.hash==='#settings' ? 'settings' : 'panel');adminLoad();
+}
+/* blank the form after a successful sign-up so the next account starts clean
+   (it kept the previous account's details, so it never "reset to type another one") */
+function resetRegisterForm(){
+  ['rg-email','rg-login_name','rg-pass','rg-pass2','rg-name','rg-school'].forEach(id=>{const el=$(id); if(el) el.value=''});
+  $('rg-classno').value='-';
+  $('rg-sex').value='1'; $('rg-level').value='3'; $('rg-class').value='0';
+  $('rg-year').value=NOW-18; $('rg-month').value='01'; $('rg-day').value='01';
+}
+async function signIn(){
+  const {ok,data}=await api('/web/api/login',{method:'POST',
+    body:JSON.stringify({email:$('li-email').value.trim(),password:$('li-pass').value})});
+  if(!ok){msg($('li-msg'),data.error||'Sign in failed',false);return}
+  ACC=data.account;WORLDS=data.worlds;PERM=ACC.profile.permission|0;TARGET=null;SUB="home";
+  msg($('li-msg'),'',true);fill();
+  show(location.hash==='#settings' ? 'settings' : 'panel');adminLoad();
+}
+async function signOut(){
+  if(!bbLeaveOK()) return;     /* the billboard's unsaved edits die with the session */
+  await api('/web/api/logout',{method:'POST',body:'{}'});
+  ACC=null;TARGET=null;SUB="home";
+  adminClear();
+  if($('home-hello'))$('home-hello').textContent='Welcome';
+  /* these two carry the previous account's details, so clear them on sign-out
+     (the guard used to test an id that does not exist, so they survived it) */
+  if($('home-email'))$('home-email').textContent='';
+  if($('home-name'))$('home-name').textContent='';
+  document.querySelector('#tabs [data-tab="panel"]').classList.add('hide');
+  show('login');msg($('li-msg'),'Signed out.',true);
+}
+async function loadMe(){
+  const {ok,data}=await api('/web/api/me');
+  if(!ok){ACC=null;show('login');return}
+  ACC=data.account;WORLDS=data.worlds;PERM=ACC.profile.permission|0;fill();
+  show(location.hash==='#settings' ? 'settings' : 'panel');adminLoad();
+}
+function toggleWorld(i,on){const b=1<<i;PERM=on?(PERM|b):(PERM&~b);renderWorlds()}
+function setWorlds(on){PERM=on?WORLDS.reduce((a,w)=>a|(1<<w.index),0):0;
+  const unlv=$('f-unlock_lv'); if(unlv) unlv.checked=on; renderWorlds()}
+function renderWorlds(){
+  $('p-worlds').innerHTML=WORLDS.map(w=>{
+    const on=!!(PERM&(1<<w.index));
+    return `<label class="world ${on?'on':''}">
+      <input type="checkbox" ${on?'checked':''} onchange="toggleWorld(${w.index},this.checked)">
+      <span class="widx">${String(w.index+1).padStart(2,'0')}</span>
+      <span class="t"><b>${w.name_eng||w.name}</b><span class="file">${w.file}</span></span>
+      <span class="tag">${on?'unlocked':'locked'}</span></label>`}).join('')
+    ||'<div class="empty">No worlds defined.</div>';
+  const got=WORLDS.filter(w=>PERM&(1<<w.index)).length;
+  $('world-count').textContent=`${got} of ${WORLDS.length} unlocked.`;
+}
+function fill(){
+  WORLDS=WORLDS||[];
+  const p=ACC.profile||{};
+  $('p-initial').textContent=(p.name||p.email||'?').slice(0,1).toUpperCase();
+  $('p-who').textContent=p.name||p.email;
+  $('p-meta').textContent=`uid ${ACC.uid} · created ${ACC.created||'-'} · last login ${ACC.last_login||'never'}`;
+  const hello=$('home-hello');
+  if(hello){
+    const first=(p.name||'').trim().split(/\s+/)[0]||p.email||'player';
+    hello.textContent=`Hello, ${first}!`;
+    $('home-sub').textContent = 'Your player, your progress. Get ready for your next adventure.';
+    const av=$('home-avatar');
+    if(av) av.src=ACC.avatar_head_url||ACC.avatar_url||'/web/avatars/default.png';
+    $('home-email').textContent = ACC.email||'-';
+    $('home-name').textContent = p.name||'-';
+    $('home-uid').textContent = ACC.uid||'-';
+    const got=WORLDS.filter(w=>PERM&(1<<w.index)).length;
+    $('home-worlds').textContent=`${got} of ${WORLDS.length}`;
+    loadRecent();
+    loadCard();
+  }
+  FIELDS.forEach(k=>{const el=$('f-'+k); if(el)el.value=(p[k]===undefined||p[k]===null)?'':p[k]});
+  const maze=$('f-maze_open');
+  if(maze) maze.checked=!(String(p.maze_open===undefined||p.maze_open===null?'true':p.maze_open).toLowerCase()==='false');
+  const unlv=$('f-unlock_lv');
+  if(unlv) unlv.checked=String(p.unlockLevels===undefined||p.unlockLevels===null?'0':p.unlockLevels).trim()==='1';
+  $('f-uid').value=ACC.uid||'';
+  const ln=$('f-login_name'); if(ln) ln.value=ACC.login_name||'';
+  const b=(p.birth||'2000-01-01').split('-');
+  setDob(b[0]||'2000',b[1]||'01',b[2]||'01');
+  $('linked-now').textContent=p.linked_account||'none';
+  $('tab-panel').classList.remove('hide');
+  document.querySelector('#tabs [data-tab="panel"]').classList.remove('hide');
+  renderWorlds();loadList();renderNavigation();
+}
+async function saveAccount(){
+  const profile={permission:PERM,birth:getDob(),
+                 unlockLevels:($('f-unlock_lv')&&$('f-unlock_lv').checked)?'1':'0',
+                 maze_open:$('f-maze_open')?$('f-maze_open').checked:true};
+  FIELDS.forEach(k=>{const el=$('f-'+k); if(el)profile[k]=el.value});
+  const wanted=$('pw-new').value;
+  if(wanted){
+    if(wanted!==$('pw-new2').value){msg($('pw-msg'),'The two new passwords do not match',false);showSub('account');return}
+    const r=await api('/web/api/password',{method:'POST',
+      body:JSON.stringify({old:$('pw-old').value,new:wanted})});
+    if(!r.ok){msg($('pw-msg'),r.data.error||'Could not change the password',false);showSub('account');return}
+    msg($('pw-msg'),'Password changed.',true);
+    $('pw-new').value='';$('pw-new2').value='';$('pw-old').value='';
+  }
+  const body={profile}; if(TARGET) body.target=TARGET;
+  if($('f-login_name')) body.login_name=$('f-login_name').value.trim();
+  const {ok,data}=await api('/web/api/me',{method:'POST',body:JSON.stringify(body)});
+  if(!ok){msg($('f-msg'),data.error||'Could not save',false);showSub('personal');return}
+  ACC=data.account;WORLDS=data.worlds;PERM=ACC.profile.permission|0;
+  msg($('f-msg'),'Saved. The game picks this up on its next login.',true);
+  msg($('st-msg'),'Saved. The game picks this up on its next login.',true);
+  fill();
+  toast('Saved');
+}
+let toastTimer=null;
+function toast(text){
+  let el=document.getElementById('save-toast');
+  if(!el){
+    el=document.createElement('div');
+    el.id='save-toast'; el.className='toast';
+    el.innerHTML='<span class="dot"></span><span id="save-toast-text"></span>';
+    document.body.appendChild(el);
+  }
+  $('save-toast-text').textContent=text;
+  el.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('on'),2200);
+}
+async function loadRecent(){
+  const el=$('home-recent'); if(!el) return;
+  const {ok,data}=await api('/web/api/recent');
+  if(!ok||!data||!Array.isArray(data.recent)){return}
+  if(!data.recent.length){
+    el.innerHTML='<div class="row"><span class="t"><b>Nothing yet</b>'+
+      '<span>play a level in the game and it shows up here</span></span></div>';
+    return;
+  }
+  el.innerHTML=data.recent.map(r=>`<div class="row">
+      <span class="t"><b>${esc(r.title)}</b><span class="when">${esc(r.when)}</span></span>
+      <span class="score">${esc(r.score)}</span></div>`).join('');
+}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,
+  c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function linkAccount(){
+  const {ok,data}=await api('/web/api/link',{method:'POST',
+    body:JSON.stringify({name:$('ln-name').value.trim(),password:$('ln-pass').value})});
+  if(!ok){msg($('ln-msg'),data.error||'Could not link',false);return}
+  ACC=data.account;WORLDS=data.worlds;msg($('ln-msg'),'Linked to '+ACC.profile.linked_account,true);fill();
+}
+async function unlinkAccount(){
+  const body={profile:{linked_account:''}}; if(TARGET) body.target=TARGET;
+  const {ok,data}=await api('/web/api/me',{method:'POST',body:JSON.stringify(body)});
+  msg($('ln-msg'),ok?'Unlinked.':(data.error||'Could not unlink'),ok);
+  if(ok){ACC=data.account;fill()}
+}
+async function loadList(){
+  const {ok,data}=await api('/web/api/accounts');
+  if(!ok){$('acc-list').innerHTML='<div class="empty">Sign in first.</div>';return}
+  const mine=ACC&&ACC.email;
+  $('acc-list').innerHTML=data.accounts.map(a=>{
+    const label=a.login_name||a.email;
+    return `<div class="acct${a.email===mine?' me':''}" data-email="${esc(a.email)}"
+        data-name="${esc((a.login_name||'')+' '+(a.name||''))}">
+      <div class="mono-av">${esc(String(label).slice(0,1).toUpperCase())}</div>
+      <div class="who"><b>${esc(label)}</b>
+        <div class="chips">
+          ${a.login_name?`<span class="chip">${esc(a.email)}</span>`:''}
+          <span class="chip">${esc(a.name||'no name')}</span>
+          <span class="chip mono">uid ${esc(a.uid||'-')}</span>
+          <span class="chip mono">last login ${esc(a.last_login||'never')}</span>
+          ${a.linked_account?`<span class="chip amber">linked ${esc(a.linked_account)}</span>`:''}
+          ${a.email===mine?'<span class="chip amber">this account</span>':''}
+        </div></div>
+      <div class="actions">
+        <button class="btn sm" onclick="loadInto('${a.email}')">Edit</button>
+        <button class="btn sm danger" onclick="removeAccount('${a.email}')">Delete</button>
+      </div></div>`}).join('')
+    ||'<div class="empty">No accounts yet.</div>';
+  const c=$('acc-count');
+  if(c) c.textContent=data.accounts.length===1?'1 account':data.accounts.length+' accounts';
+  filterAccounts();
+}
+/* the list can run to dozens of rows, so it filters on what each row already
+   carries: the email, the login name and the player name */
+function filterAccounts(){
+  const box=$('acc-filter'), note=$('acc-note');
+  const q=box?box.value.trim().toLowerCase():'';
+  let shown=0, total=0;
+  document.querySelectorAll('#acc-list .acct').forEach(el=>{
+    total++;
+    const hay=((el.dataset.email||'')+' '+(el.dataset.name||'')).toLowerCase();
+    const hit=!q||hay.includes(q);
+    el.classList.toggle('hide', !hit);
+    if(hit) shown++;
+  });
+  if(note) note.textContent = (q&&total) ? `${shown} of ${total} match "${box.value.trim()}"` : '';
+}
+async function removeAccount(email){
+  if(!confirm('Delete the account '+email+'? This cannot be undone.'))return;
+  const {ok,data}=await api('/web/api/delete',{method:'POST',body:JSON.stringify({email})});
+  msg($('ln-msg'), ok?('Deleted '+email+'.'):(data.error||'Could not delete'), ok);
+  if(ok && ACC && ACC.email===email){ACC=null;TARGET=null;show('login');}
+  loadList();
+}
+async function loadInto(email){
+  TARGET=email;
+  CARD=null;                    // so the board and the character read THIS account
+  const {ok,data}=await api('/web/api/account?email='+encodeURIComponent(email));
+  if(!ok){msg($('f-msg'),data.error||'Could not load that account',false);showSub('personal');return}
+  ACC=data.account;WORLDS=data.worlds;PERM=ACC.profile.permission|0;fill();showSub('personal');
+  await loadCard();             // home, board and look follow the account being viewed
+  if(PAGE==='board') renderBoard();
+  msg($('f-msg'),`Editing <b>${email}</b> — saving updates that account.`,true);
+}
+/* ── admin: the castle-hall billboard + the LPO client folder ────────────────
+   Both were a separate /admin page.  They are server-wide settings rather than
+   per-account ones, so they live in their own rail group and the API refuses
+   without a signed-in account (/web/api/admin/*). */
+let BOARD=[], BINFO={}, BSEL=null, FILES=null;
+const PAGESIZE=8;
+const bEsc=s=>String(s==null?'':s).replace(/[&<>"]/g,
+  c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const bbMsg=(t,good)=>{const n=$('bb-msg');if(n){n.innerHTML=t;
+  n.className='hint'+(good===true?' ok':good===false?' err':'')}};
+
+function adminLoad(){ bbLoad(); filesLoad(); }
+function cardClear(){ CARD=null;
+  // the leaderboard and the character both read CARD, so blank them on sign-out
+  // instead of leaving the previous account's numbers on screen
+  ['card-body','board-body','look-body'].forEach(id=>{ const b=$(id); if(b) b.innerHTML=''; }); }
+function adminClear(){
+  cardClear();
+  BOARD=[];BINFO={};BSEL=null;FILES=null;
+  BBSNAP=null;              /* nothing of the previous session's board to warn about */
+  const rows=$('bb-rows'); if(rows) rows.innerHTML='';
+  const nav=$('adminnav'); if(nav) nav.classList.add('hide');
+  if($('bb-pane')) $('bb-pane').innerHTML='';
+  if($('files-body')) $('files-body').innerHTML='';
+}
+
+/* ── the billboard ── */
+async function bbLoad(){
+  const {ok,data}=await api('/web/api/admin/notices');
+  const nav=$('adminnav');
+  if(!ok){ if(nav)nav.classList.add('hide'); return; }
+  if(nav) nav.classList.remove('hide');
+  BOARD=data.notices||[]; BINFO=data;
+  if(BSEL!==null && !BOARD[BSEL]) BSEL = BOARD.length?0:null;
+  bbRail();
+  if(SUB==='billboard') bbPane();
+  bbMarkSynced();   /* this is the server's own copy again */
+}
+function bbRail(){
+  const box=$('bb-rows'); if(!box) return;
+  if($('bb-count')) $('bb-count').textContent = BOARD.length ? BOARD.length : '';
+  const out=[];
+  if(!BOARD.length){ out.push('<div class="railnote">Empty — the board opens blank in game.</div>'); }
+  BOARD.forEach((n,i)=>{
+    const stars='★'.repeat(Math.max(0,Math.min(5,parseInt(n.stars,10)||0)));
+    const has=(BINFO.images||{})[String(n.id)];
+    out.push(`<button class="item" type="button" aria-current="${BSEL===i}" onclick="bbOpen(${i})">
+      <span class="t"><b>${bEsc(n.title||'(no title yet)')}</b>
+      <span class="meta"><span class="d">${bEsc(n.createDate||'no date')}</span>${
+        stars?`<span class="st">${stars}</span>`:''}${has?'<span class="st">▣</span>':''}</span></span>
+      <span class="idx">#${i+1}</span></button>`);
+  });
+  box.innerHTML=out.join('');
+}
+function bbOpen(i){
+  if(i!==BSEL && !bbLeaveOK()) return;   /* unsaved edits: ask before switching rows */
+  BSEL=i; SUB='billboard'; PAGE='settings'; renderNavigation(); bbPane();
+}
+
+/* ── the card editor's model ─────────────────────────────────────────────────
+   The card the game loads is still ONE PNG at /notice/content/<id>.png: the panel
+   does `news.addChild(ResLoader.getData(url))` and SOL::ResLoader only makes a
+   display object out of swf/jpg/png/gif.  What changed is how that PNG is made.
+   The layout below is what the operator edits; it is stored per notice in
+   notices.json, so reopening the editor restores every position, colour and font,
+   and the card can be re-rendered at any time.  A notice with no layout still
+   renders (the server serves the card that was uploaded for it, or the blank one). */
+const CARD_W=694, CARD_H=510;
+/* ── motion: the animated billboard ──────────────────────────────────────────
+   The board cannot play a video FILE, and an animated GIF is decoded to its first
+   frame by Flash's own loader - so neither is handed to the game.  What the game
+   CAN step through is a sprite sheet.  The patched panel
+   (`PrinceOnline.castle.Notice/afAnimateNoticeCard`) reads the size of the object
+   the loader returns and, when it is height 510 and a whole number N>=2 of 694-wide
+   tiles, shows only the first tile through `scrollRect` and slides that window one
+   tile every ENTER_FRAME.  So motion is published by painting the SAME card once per
+   frame - only the picture slot changes - into one (694*N) x 510 PNG, at the very
+   same `/notice/content/<id>.png` URL the board already loads: no SWF, no protocol
+   change, and a notice with no motion publishes byte-identically to before.  Pacing
+   is fixed in the client (~1.5 s per cycle), so the note under the controls talks
+   about the strip, not about an fps box the client would ignore. */
+const BB_MOTION_MAX=8;            // frames one strip may hold
+const BB_MOTION_DEF=6;            // what the frame-count control starts on
+const BB_FRAME_MAXW=480;          // each stored motion frame is downscaled to this
+const BB_SHEET_MAXB=3900000;      // the server refuses a PNG larger than 4 MB
+function bbMot(){
+  const L=BBEDIT&&BBEDIT.L, m=L&&L.motion;
+  return (m && typeof m==='object' && Array.isArray(m.frames)) ? m : null;
+}
+function bbMotionOn(){ const m=bbMot(); return !!(m && m.on && m.frames.length>=2); }
+function bbMotionFrameCount(){ const m=bbMot(); return m?m.frames.length:0; }
+function bbMotionLoopSecs(){
+  const n=Math.max(1,bbMotionFrameCount());
+  const iv=Math.min(400,Math.max(70,1500/n));   /* must match afNoticeMotionTick */
+  return (iv*n/1000).toFixed(1);
+}
+/* Downscale one frame and re-encode it, so notices.json does not grow by megabytes
+   of full-size video frames. */
+function bbShrink(src,maxw,cb){
+  const im=new Image();
+  im.onload=()=>{
+    const w=im.naturalWidth||im.width, h=im.naturalHeight||im.height;
+    if(!w||!h){ cb(null); return; }
+    const s=Math.min(1,maxw/Math.max(w,h));
+    const c=document.createElement('canvas');
+    c.width=Math.max(1,Math.round(w*s)); c.height=Math.max(1,Math.round(h*s));
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    try{ cb(c.toDataURL('image/jpeg',0.85)); }catch(e){ cb(null); }
+  };
+  im.onerror=()=>cb(null);
+  im.src=src;
+}
+function bbEvenPick(n,want){       // `want` items out of `n`, endpoints included
+  const out=[];
+  const w=Math.max(2,Math.min(want,n));
+  for(let k=0;k<w;k++) out.push(Math.round(k*(n-1)/Math.max(1,w-1)));
+  return out.filter((v,i,a)=>a.indexOf(v)===i);
+}
+const BB_DEFAULT_FONT='system-ui,"Segoe UI","Microsoft JhengHei","Noto Sans CJK TC",sans-serif';
+/* Font families a browser can already render - the card is painted by the
+   operator's own browser, so a family only has to be installed, or be one of the
+   generic fallbacks every system maps.  The CJK-capable ones come first because
+   the board's text is Chinese as often as it is English. */
+const BBFONTS=[
+  ['System UI / default', BB_DEFAULT_FONT],
+  ['JhengHei 微軟正黑 (Windows TC)', '"Microsoft JhengHei","微軟正黑體",sans-serif'],
+  ['YaHei 微軟雅黑 (Windows SC)', '"Microsoft YaHei","微软雅黑",sans-serif'],
+  ['PingFang 蘋方 (macOS)', '"PingFang TC","PingFang SC","Heiti TC",sans-serif'],
+  ['Noto Sans CJK', '"Noto Sans CJK TC","Noto Sans CJK SC","Source Han Sans TC",sans-serif'],
+  ['Songti 宋體 / serif CJK', '"Noto Serif CJK TC","Songti TC","Songti SC","SimSun",serif'],
+  ['MingLiU 細明體', '"PMingLiU","MingLiU",serif'],
+  ['KaiTi 楷體 / Fangsong 仿宋', '"KaiTi","STKaiti",Fangsong,serif'],
+  ['Georgia / serif', 'Georgia,"Times New Roman",serif'],
+  ['Arial / Helvetica', 'Arial,Helvetica,sans-serif'],
+  ['Trebuchet / Verdana', '"Trebuchet MS",Verdana,sans-serif'],
+  ['Courier / mono', '"Courier New",ui-monospace,monospace'],
+  ['Impact / display', 'Impact,"Arial Black",sans-serif'],
+];
+const BBPATTERNS=[['none','Plain'],['dots','Dots'],['grid','Grid'],['stripes','Stripes']];
+const BBGRADS=[['none','Flat colour'],['v','Fade down'],['h','Fade across'],['r','Soft glow']];
+const BBALIGN=[['left','Left'],['center','Centre'],['right','Right']];
+/* The current family is offered even when it is not in the list - a layout saved by
+   another machine keeps working instead of silently snapping back to the default. */
+function bbFontOptions(cur){
+  const known=BBFONTS.some(f=>f[1]===cur);
+  return (known?'':`<option value="${bEsc(cur)}" selected>Current — ${bEsc(String(cur).slice(0,30))}</option>`)
+    + BBFONTS.map(f=>`<option value="${bEsc(f[1])}"${f[1]===cur?' selected':''}>${f[0]}</option>`).join('');
+}
+/* One-click themes: the whole card look, not just its content. */
+const BBPRESETS=[
+  ['Cream',   {bg:'#fcf8ec',bg2:'#f1e3bd',border:'#cec4aa',band:'#f4ecd6',rule:'#d9c891',ink:'#6b5423',text:'#3a2f1c'}],
+  ['Midnight',{bg:'#141922',bg2:'#0a0e14',border:'#3b4658',band:'#1d2634',rule:'#3b4658',ink:'#e7c977',text:'#dbe4f0'}],
+  ['Gold',    {bg:'#fffdf5',bg2:'#f6e7bb',border:'#c8a44a',band:'#e9c05a',rule:'#c8a44a',ink:'#4a3410',text:'#33280f'}],
+  ['Mint',    {bg:'#f2fbf5',bg2:'#dcf2e4',border:'#9dcfb4',band:'#cdeedd',rule:'#9dcfb4',ink:'#1f5c3d',text:'#20402f'}],
+  ['Sakura',  {bg:'#fff6f8',bg2:'#ffe1ea',border:'#e7aec0',band:'#ffd7e2',rule:'#e7aec0',ink:'#8a2c4c',text:'#4a2230'}],
+  ['Slate',   {bg:'#f4f6f8',bg2:'#e1e7ec',border:'#aab6c2',band:'#dde4ea',rule:'#aab6c2',ink:'#2b3a4a',text:'#22303d'}],
+];
+let BBEDIT=null;   // {i, L, sel:{kind:'image'}|{kind:'text',k}, _img, _src, thumbs, vidUrl, vidName, prev}
+
+function bbLayoutOf(n){
+  let L=n.layout;
+  if(!L || typeof L!=='object' || !L.card) L=null;
+  if(L && !Array.isArray(L.texts)) L.texts=[];
+  if(!L){
+    /* A notice written before the editor existed: open on something recognisable -
+       its old caption becomes one text block in the middle of the card. */
+    L={v:1,
+      card:{bg:'#ffffff',bg2:'#eaf6fd',grad:'none',pattern:'none',patternColor:'#a9d3ea',
+            border:'#2196c9',borderW:3,radius:0},
+      head:{on:true,h:72,band:'#a9dcf4',rule:'#a9d3ea',text:'#111111',family:BB_DEFAULT_FONT,
+            size:28,weight:600,align:'left',pad:44,title:''},
+      image:null,texts:[]};
+    const cap=String(n.bbText||'').trim()||String(n.body||'').trim();
+    if(cap) L.texts.push({text:cap,x:74,y:110,w:CARD_W-148,family:BB_DEFAULT_FONT,size:23,
+                          weight:400,italic:false,color:'#111111',align:'center',lh:1.45,shadow:false});
+    n.layout=L;
+  }
+  return L;
+}
+function bbEditFor(i){
+  const had=!!(BOARD[i] && BOARD[i].layout);
+  const L=bbLayoutOf(BOARD[i]);
+  if(!BBEDIT || BBEDIT.i!==i)
+    BBEDIT={i:i,L:L,sel:L.image?{kind:'image'}:(L.texts.length?{kind:'text',k:0}:null),
+            _img:null,_src:null,thumbs:[],vidUrl:'',vidName:'',prev:false};
+  BBEDIT.L=L;
+  /* A row written before the editor existed gets a default layout the moment it is
+     opened.  That is the editor materialising what the card would have been, not an
+     edit, so it must not raise the badge - and it is only waved through while the
+     board is otherwise in step with the server, so it can never clear a real edit. */
+  if(!had && !bbIsDirty()) bbMarkSynced();
+  return BBEDIT;
+}
+/* ── has this board been published? ──────────────────────────────────────────
+   The editor works on the LIVE model (BOARD[i].layout), so an edit is only real
+   once Save & publish has stored it and re-rendered the PNG.  Rather than
+   sprinkling a flag through two dozen mutation paths - a drag, a slider, a theme,
+   a text block added, a row's date typed - the state is a comparison: the
+   canonical signature of the whole board right now against the signature taken at
+   the last moment the page and the server agreed (a load, a successful save).
+   The WHOLE board, not just the row on screen: deleting a row or reordering the
+   list is every bit as unpublished as moving a picture, and a per-row comparison
+   would quietly drop the badge for those.  Every mutator already repaints through
+   bbDraw(), which is where the marks are refreshed, so a path that forgets to
+   report itself still cannot hide.  Transient render scratch (`_lines`, `_lh`,
+   `_h`) is dropped from the signature - bbRender writes it on every paint and it
+   must never look like an edit. */
+let BBSNAP=null;
+function bbCanon(o){
+  if(Array.isArray(o)) return o.map(bbCanon);
+  if(o && typeof o==='object'){
+    const out={};
+    Object.keys(o).sort().forEach(k=>{
+      if(k.charAt(0)==='_') return;
+      const v=o[k];
+      if(v===undefined || typeof v==='function') return;
+      out[k]=bbCanon(v);
+    });
+    return out;
+  }
+  return (typeof o==='number')?Math.round(o*1000)/1000:o;
+}
+function bbSigRow(n){
+  if(!n) return null;
+  return {id:n.id,createDate:n.createDate,title:n.title,body:n.body,stars:n.stars,
+          art:n.art,isNew:!!n.new,layout:bbCanon(n.layout)};
+}
+function bbBoardSig(){ return JSON.stringify(BOARD.map(bbSigRow)); }
+function bbIsDirty(){ return BBSNAP!==null && bbBoardSig()!==BBSNAP; }
+function bbMarkSynced(){              /* the page and the server agree again */
+  BBSNAP=bbBoardSig();
+  bbDirtyUI();
+}
+function bbDirtyUI(){
+  const on=bbIsDirty();
+  const b=$('bb-dirty'); if(b) b.hidden=!on;
+  const n=$('bb-dirtynote'); if(n) n.hidden=!on;
+  const o=$('bb-dirty-hint'); if(o) o.hidden=!on;
+}
+/* The same words the badge, the note and the prompts use. */
+function bbLeaveOK(){
+  if(!bbIsDirty()) return true;
+  return window.confirm('You have unsaved billboard changes — press Save & publish.\n\n'
+    + 'Leave without publishing them?');
+}
+function bbSelText(){
+  const s=BBEDIT&&BBEDIT.sel;
+  return (s && s.kind==='text' && BBEDIT.L.texts[s.k]) ? BBEDIT.L.texts[s.k] : null;
+}
+
+/* ── rendering: ONE function draws both what the editor shows and the PNG ─────
+   `bbDraw()` paints the canvas; `toDataURL('image/png')` on that same canvas is
+   the byte-for-byte card the game fetches, so the preview and the game cannot
+   drift apart. */
+function bbFontCss(el){
+  return (el.italic?'italic ':'')+(Math.round(el.weight)||400)+' '+Math.round(el.size)+'px '+
+    (el.family||BB_DEFAULT_FONT);
+}
+function bbRoundRect(x,a,b,w,h,r){
+  r=Math.max(0,Math.min(r||0,Math.min(w,h)/2));
+  x.beginPath();
+  x.moveTo(a+r,b); x.lineTo(a+w-r,b); x.quadraticCurveTo(a+w,b,a+w,b+r);
+  x.lineTo(a+w,b+h-r); x.quadraticCurveTo(a+w,b+h,a+w-r,b+h);
+  x.lineTo(a+r,b+h); x.quadraticCurveTo(a,b+h,a,b+h-r);
+  x.lineTo(a,b+r); x.quadraticCurveTo(a,b,a+r,b);
+  x.closePath();
+}
+function bbPattern(x,L){
+  const w=CARD_W,h=CARD_H, col=L.card.patternColor||L.card.border||'#2196c9';
+  x.save(); x.strokeStyle=col; x.fillStyle=col; x.globalAlpha=.28; x.lineWidth=1;
+  if(L.card.pattern==='dots'){
+    for(let py=10;py<h;py+=22) for(let px=10;px<w;px+=22){ x.beginPath(); x.arc(px,py,1.6,0,6.3); x.fill(); }
+  } else if(L.card.pattern==='grid'){
+    for(let py=0;py<h;py+=26){ x.beginPath(); x.moveTo(0,py+.5); x.lineTo(w,py+.5); x.stroke(); }
+    for(let px=0;px<w;px+=26){ x.beginPath(); x.moveTo(px+.5,0); x.lineTo(px+.5,h); x.stroke(); }
+  } else if(L.card.pattern==='stripes'){
+    for(let d=-h;d<w;d+=18){ x.beginPath(); x.moveTo(d,h); x.lineTo(d+h,0); x.stroke(); }
+  }
+  x.restore();
+}
+function bbRender(x,L,img,row,ovr){
+  const c=L.card, head=L.head;
+  /* `ovr` is the motion-frame source: the same card is painted once per animation
+     frame with only the picture slot swapped, which is what makes the published
+     strip and the editor's preview the same drawing.  Without it this is exactly
+     the single still card it always was. */
+  const pic=ovr||img;
+  x.save();
+  x.clearRect(0,0,CARD_W,CARD_H);
+  /* background: flat, a two-stop gradient, or that plus a subtle pattern */
+  if(c.grad && c.grad!=='none'){
+    let g;
+    if(c.grad==='v') g=x.createLinearGradient(0,0,0,CARD_H);
+    else if(c.grad==='h') g=x.createLinearGradient(0,0,CARD_W,0);
+    else g=x.createRadialGradient(CARD_W/2,CARD_H/2,24,CARD_W/2,CARD_H/2,CARD_W*0.78);
+    g.addColorStop(0,c.bg); g.addColorStop(1,c.bg2||c.bg);
+    x.fillStyle=g;
+  } else x.fillStyle=c.bg;
+  if(c.radius>0){ bbRoundRect(x,0,0,CARD_W,CARD_H,c.radius); x.fill(); }
+  else x.fillRect(0,0,CARD_W,CARD_H);
+  if(c.pattern && c.pattern!=='none'){
+    x.save(); if(c.radius>0){ bbRoundRect(x,0,0,CARD_W,CARD_H,c.radius); x.clip(); }
+    bbPattern(x,L); x.restore();
+  }
+  /* the card's own border, drawn inside the edge so nothing is cut off */
+  if(c.borderW>0){
+    x.strokeStyle=c.border; x.lineWidth=c.borderW;
+    const o=c.borderW/2;
+    if(c.radius>0){ bbRoundRect(x,o,o,CARD_W-c.borderW,CARD_H-c.borderW,c.radius); x.stroke(); }
+    else x.strokeRect(o,o,CARD_W-c.borderW,CARD_H-c.borderW);
+  }
+  /* header band: the notice's own title (or the override typed in the Header box).
+     With `head.on` false NOTHING is painted here - no band, no divider rule, no
+     reserved strip - so the body content owns the top of the card.  One renderer
+     draws the preview and the published PNG, so the two cannot disagree. */
+  if(head.on && head.h>0){
+    x.fillStyle=head.band; x.fillRect(0,0,CARD_W,head.h);
+    if(c.radius>0){ x.save(); bbRoundRect(x,0,0,CARD_W,CARD_H*2,c.radius); x.clip(); bbRoundRect(x,0,0,CARD_W,head.h,c.radius); x.fill(); x.restore(); }
+    x.fillStyle=head.rule; x.fillRect(0,head.h,CARD_W,2);
+    const title=String(head.title||'').trim()||String((row&&row.title)||'').trim();
+    x.font=bbFontCss(head);
+    x.textBaseline='middle';
+    const pad=Math.max(0,head.pad);
+    const ax=head.align==='center'?CARD_W/2:head.align==='right'?CARD_W-pad:pad;
+    x.textAlign=head.align||'left';
+    x.fillStyle=head.text;
+    x.fillText(bbClipText(x,title||'公告',CARD_W-2*pad),ax,head.h/2+1);
+  }
+  /* the picture: a positioned, resizable element with its own fit and radius */
+  if(pic && pic.width && L.image){
+    const I=L.image;
+    x.save();
+    if(I.radius>0){ bbRoundRect(x,I.x,I.y,I.w,I.h,I.radius); x.clip(); }
+    else { x.beginPath(); x.rect(I.x,I.y,I.w,I.h); x.clip(); }
+    x.globalAlpha=(I.opacity==null?1:Math.max(0,Math.min(1,I.opacity)));
+    const fit=I.fit||'contain';
+    if(fit==='fill') x.drawImage(pic,I.x,I.y,I.w,I.h);
+    else {
+      const s=fit==='cover'?Math.max(I.w/pic.width,I.h/pic.height)
+                           :Math.min(I.w/pic.width,I.h/pic.height);
+      const dw=pic.width*s, dh=pic.height*s;
+      x.drawImage(pic,I.x+(I.w-dw)/2,I.y+(I.h-dh)/2,dw,dh);
+    }
+    x.restore();
+    if(I.border>0){
+      x.save(); x.globalAlpha=(I.opacity==null?1:I.opacity);
+      x.strokeStyle=I.borderColor||'#2196c9'; x.lineWidth=I.border;
+      if(I.radius>0){ bbRoundRect(x,I.x+.5,I.y+.5,I.w-1,I.h-1,I.radius); x.stroke(); }
+      else x.strokeRect(I.x+.5,I.y+.5,I.w-1,I.h-1);
+      x.restore();
+    }
+  }
+  /* every text block, wrapped to its own width (character-level, so Chinese wraps) */
+  (L.texts||[]).forEach(t=>{
+    const width=Math.max(24,t.w), lh=Math.max(6,Math.round(t.size*(t.lh||1.45)));
+    x.font=bbFontCss(t);
+    const lines=bbWrapText(x,t.text,width);
+    t._lines=lines.length||1; t._lh=lh; t._h=t._lines*lh;
+    x.textAlign=t.align||'left';
+    x.textBaseline='alphabetic';
+    const ax=t.align==='center'?t.x+width/2:t.align==='right'?t.x+width:t.x;
+    x.fillStyle=t.color||'#ffffff';
+    x.save();
+    if(t.shadow){ x.shadowColor='rgba(0,0,0,.45)'; x.shadowBlur=5; x.shadowOffsetY=1; }
+    let y=t.y+Math.round(t.size*0.92);
+    lines.forEach(l=>{ x.fillText(l,ax,y); y+=lh; });
+    x.restore();
+  });
+  x.restore();
+}
+function bbEnsureImg(){
+  const L=BBEDIT&&BBEDIT.L, src=L&&L.image&&L.image.src;
+  if(!BBEDIT) return;
+  if(!src){ BBEDIT._img=null; BBEDIT._src=null; return; }
+  if(BBEDIT._src===src && BBEDIT._img) return;
+  const im=new Image();
+  im.onload=()=>{ if(!BBEDIT) return; BBEDIT._img=im; BBEDIT._src=src; bbDraw(); };
+  im.onerror=()=>{ if(!BBEDIT) return; BBEDIT._img=null; bbMsg('That picture could not be decoded',false); };
+  im.src=src;
+}
+function bbDraw(){
+  const c=$('bb-canvas'); if(!c||!BBEDIT) return;
+  if(!BBEDIT.prev) bbEnsureImg();
+  bbRender(c.getContext('2d'),BBEDIT.L,BBEDIT._img,BOARD[BSEL]);
+  bbOverlaySync();
+  bbDirtyUI();          /* every mutator repaints through here */
+}
+function bbWhenReady(cb){
+  const src=BBEDIT&&BBEDIT.L.image&&BBEDIT.L.image.src;
+  if(!src || (BBEDIT._img&&BBEDIT._src===src)){ cb(); return; }
+  const im=new Image();
+  im.onload=()=>{ BBEDIT._img=im; BBEDIT._src=src; cb(); };
+  im.onerror=()=>cb();
+  im.src=src;
+}
+
+/* ── the stage overlay: what makes the picture and the text draggable ────────
+   The overlay boxes are laid out in PERCENTAGES of the 694x510 card, so they stay
+   glued to the canvas at any display size; a drag divides the pixel delta by the
+   canvas' real scale.  Positions snap to a 2 px grid and are clamped so nothing
+   can be dragged off the card. */
+const bbPct=(v,t)=>(Math.max(0,Math.min(t,v))/t*100).toFixed(3)+'%';
+const bbSnap=v=>Math.round(v/2)*2;
+function bbEls(){
+  const L=BBEDIT.L, out=[];
+  if(L.image) out.push({kind:'image',x:L.image.x,y:L.image.y,w:L.image.w,h:L.image.h,label:'Picture'});
+  (L.texts||[]).forEach((t,k)=>out.push({kind:'text',k:k,x:t.x,y:t.y,w:t.w,
+    h:Math.max(26,t._h||Math.round(t.size*(t.lh||1.45))),label:'Text '+(k+1)}));
+  return out;
+}
+function bbIsSel(e){
+  const s=BBEDIT.sel;
+  if(!s) return false;
+  if(s.kind!==e.kind) return false;
+  return e.kind!=='text' || s.k===e.k;
+}
+function bbOverlaySync(){
+  const ov=$('bb-over'); if(!ov||!BBEDIT) return;
+  const els=bbEls();
+  /* a block that was just added or removed has no (or a stale) box yet: rebuild */
+  if(ov.querySelectorAll('.el').length!==els.length){ bbOverlay(); return; }
+  els.forEach(e=>{
+    const n=ov.querySelector(`.el[data-kind="${e.kind}"][data-k="${e.k===undefined?'':e.k}"]`);
+    if(!n) return;
+    n.style.left=bbPct(e.x,CARD_W); n.style.top=bbPct(e.y,CARD_H);
+    n.style.width=bbPct(e.w,CARD_W); n.style.height=bbPct(e.h,CARD_H);
+  });
+}
+function bbOverlay(){
+  const ov=$('bb-over'); if(!ov||!BBEDIT) return;
+  const els=bbEls();
+  ov.innerHTML=els.map(e=>`<div class="el ${e.kind==='image'?'pic':'txt'} ${bbIsSel(e)?'on':''}"
+      data-kind="${e.kind}" data-k="${e.k===undefined?'':e.k}"
+      style="left:${bbPct(e.x,CARD_W)};top:${bbPct(e.y,CARD_H)};width:${bbPct(e.w,CARD_W)};height:${bbPct(e.h,CARD_H)}">
+      <span class="tag">${e.label}</span><i class="h" data-handle="1"></i></div>`).join('')
+    + (els.length?'':'<div class="emptyhint">no elements yet — add a text block or a picture</div>');
+  ov.querySelectorAll('.el').forEach(n=>{
+    n.addEventListener('mousedown',ev=>{
+      const kind=n.dataset.kind, k=n.dataset.k===''?null:parseInt(n.dataset.k,10);
+      bbDrag(ev,kind,k);
+    });
+  });
+}
+/* A drag reads the element's CURRENT box out of the model every time it starts: the
+   listeners are attached when the overlay is built, so closing over a copy of the box
+   would drag from wherever the element sat back then (typing a new X/Y first and then
+   dragging moved it by the wrong amount). */
+function bbDrag(ev,kind,k){
+  const live=(kind==='image')?BBEDIT.L.image:(k==null?null:BBEDIT.L.texts[k]);
+  if(!live) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const before=BBEDIT.sel?BBEDIT.sel.kind+'|'+(BBEDIT.sel.k==null?'':BBEDIT.sel.k):'';
+  BBEDIT.sel=kind==='text'?{kind:'text',k:k}:{kind:'image'};
+  const after=BBEDIT.sel.kind+'|'+(BBEDIT.sel.k==null?'':BBEDIT.sel.k);
+  bbOverlay(); if(before!==after) bbInspector(); else bbSync();
+  const c=$('bb-canvas'); if(!c) return;
+  const sc=Math.max(0.05, c.getBoundingClientRect().width/CARD_W);
+  const handle=!!(ev.target && ev.target.getAttribute && ev.target.getAttribute('data-handle'));
+  const t=(kind==='image')?BBEDIT.L.image:BBEDIT.L.texts[k];
+  const start={mx:ev.clientX,my:ev.clientY,x:t.x,y:t.y,w:t.w,
+               h:Math.max(24, (kind==='image'?t.h:t._h)||24)};
+  const move=m=>{
+    const dx=(m.clientX-start.mx)/sc, dy=(m.clientY-start.my)/sc;
+    const cur=(kind==='image')?BBEDIT.L.image:BBEDIT.L.texts[k];
+    if(!cur) return;
+    if(handle){
+      cur.w=Math.min(CARD_W-cur.x, Math.max(24, bbSnap(start.w+dx)));
+      if(kind==='image') cur.h=Math.min(CARD_H-cur.y, Math.max(24, bbSnap(start.h+dy)));
+    } else {
+      cur.x=Math.max(0, Math.min(CARD_W-cur.w, bbSnap(start.x+dx)));
+      cur.y=Math.max(0, Math.min(CARD_H-start.h, bbSnap(start.y+dy)));
+    }
+    bbDraw(); bbSync();
+  };
+  const up=()=>{
+    window.removeEventListener('mousemove',move); window.removeEventListener('mouseup',up);
+    bbSync(); bbOverlay();
+  };
+  window.addEventListener('mousemove',move); window.addEventListener('mouseup',up);
+}
+function bbNudge(dx,dy){
+  const e=(BBEDIT.sel&&BBEDIT.sel.kind==='image')?BBEDIT.L.image:bbSelText();
+  if(!e) return;
+  const h=Math.max(24,e._h||24);
+  e.x=Math.max(0,Math.min(CARD_W-e.w, e.x+dx));
+  e.y=Math.max(0,Math.min(CARD_H-h, e.y+dy));
+  bbDraw(); bbSync();
+}
+
+/* ── reading and writing the model from the inspector ─────────────────────── */
+function bbRef(path){
+  const p=String(path).split('.'), L=BBEDIT&&BBEDIT.L;
+  if(!L) return null;
+  let o=L;
+  for(let i=0;i<p.length-1;i++){ o=o[p[i]]; if(o==null) return null; }
+  return {o:o,k:p[p.length-1]};
+}
+function bbNum(path,v,lo,hi,def){
+  const r=bbRef(path); if(!r) return;
+  let n=parseFloat(v);
+  if(isNaN(n)) n=(def==null?0:def);
+  if(lo!=null) n=Math.max(lo,n);
+  if(hi!=null) n=Math.min(hi,n);
+  r.o[r.k]=Math.round(n*100)/100;
+  bbDraw(); bbSync();
+}
+function bbStr(path,v){
+  const r=bbRef(path); if(!r) return;
+  r.o[r.k]=v; bbDraw(); bbSync();
+}
+function bbBool(path,v){
+  const r=bbRef(path); if(!r) return;
+  r.o[r.k]=!!v; bbDraw(); bbSync();
+}
+function bbSync(){
+  const L=BBEDIT&&BBEDIT.L; if(!L) return;
+  document.querySelectorAll('#bb-insp [data-path]').forEach(el=>{
+    if(el===document.activeElement) return;
+    const r=bbRef(el.dataset.path); if(!r) return;
+    const v=r.o[r.k];
+    if(v==null) return;
+    if(el.type==='checkbox') el.checked=!!v;
+    else if(el.type!=='file') el.value=(typeof v==='number')?String(Math.round(v*100)/100):v;
+  });
+}
+function bbPreset(k){
+  const P=BBPRESETS[k]; if(!P||!BBEDIT) return;
+  const c=BBEDIT.L.card, h=BBEDIT.L.head;
+  c.bg=P[1].bg; c.bg2=P[1].bg2; c.border=P[1].border;
+  h.band=P[1].band; h.rule=P[1].rule; h.text=P[1].ink;
+  (BBEDIT.L.texts||[]).forEach(t=>{ t.color=P[1].text });
+  bbDraw(); bbInspector();
+  bbMsg('Theme applied — press Save &amp; publish to put it in the game');
+}
+function bbResetLayout(){
+  const n=BOARD[BSEL]; if(!n) return;
+  n.layout=null; BBEDIT=null;
+  bbPane();
+  bbMsg('Layout reset to the default card — press Save &amp; publish to keep it',true);
+}
+/* ── the title band, on or off ────────────────────────────────────────────────
+   Off must mean OFF: no band, no divider rule, no gap where they were, and the
+   body content left with the whole top of the card.  bbRender already skips both
+   when `head.on` is false; what would leave the wasted strip is the CONTENT -
+   a text block or the picture placed below the band by the tools comes up with
+   it, so the card really starts at the top instead of showing an empty band's
+   worth of background.  The elements are only shifted when every one of them
+   sits under the band already (moving one out from under it and not another
+   would rearrange a card that was deliberately laid out); the height is kept,
+   so switching the band back on restores it at the height it had. */
+function bbHeadOn(v){
+  const L=BBEDIT&&BBEDIT.L; if(!L||!L.head) return;
+  const was=!!L.head.on, now=!!v;
+  L.head.on=now;
+  let moved=0;
+  if(was && !now){
+    const drop=Math.max(0,Math.round(L.head.h||0));
+    const els=[].concat(L.image?[L.image]:[], L.texts||[]);
+    if(drop>0 && els.length && els.every(e=>Math.round(e.y)>=drop)){
+      els.forEach(e=>{ e.y=Math.max(0,Math.round(e.y-drop)); });
+      moved=els.length;
+    }
+  }
+  bbDraw(); bbOverlay(); bbInspector();
+  bbMsg(now ? 'Title band is on — press Save &amp; publish to publish the card'
+            : 'Title band hidden — the card is body only'
+              + (moved?', and '+moved+' element'+(moved===1?'':'s')+' moved up to the top of the card':'')
+              + '. Press Save &amp; publish to publish it');
+}
+function bbAddText(){
+  const L=BBEDIT.L;
+  const top=L.head.on?L.head.h:0;
+  L.texts.push({text:'New text — edit me',x:74,y:Math.max(12,top+26),w:CARD_W-148,
+    family:BB_DEFAULT_FONT,size:22,weight:400,italic:false,color:'#111111',align:'center',lh:1.45,shadow:false});
+  BBEDIT.sel={kind:'text',k:L.texts.length-1};
+  bbDraw(); bbOverlay(); bbInspector();
+  bbMsg('Text block added — drag it on the card, or type in the box on the right');
+}
+function bbPickText(k){ BBEDIT.sel={kind:'text',k:k}; bbOverlay(); bbInspector(); }
+function bbPickImage(){ if(BBEDIT.L.image){ BBEDIT.sel={kind:'image'}; bbOverlay(); bbInspector(); } }
+function bbDelText(k){
+  BBEDIT.L.texts.splice(k,1);
+  BBEDIT.sel=BBEDIT.L.texts.length?{kind:'text',k:Math.max(0,Math.min(k,BBEDIT.L.texts.length-1))}:null;
+  bbDraw(); bbOverlay(); bbInspector();
+}
+function bbDupText(k){
+  const t=BBEDIT.L.texts[k]; if(!t) return;
+  BBEDIT.L.texts.splice(k+1,0,Object.assign({},t,{y:t.y+26}));
+  BBEDIT.sel={kind:'text',k:k+1};
+  bbDraw(); bbOverlay(); bbInspector();
+}
+function bbMoveText(k,d){
+  const L=BBEDIT.L, j=k+d; if(j<0||j>=L.texts.length) return;
+  [L.texts[k],L.texts[j]]=[L.texts[j],L.texts[k]];
+  BBEDIT.sel={kind:'text',k:j};
+  bbDraw(); bbOverlay(); bbInspector();
+}
+/* ── the picture ─────────────────────────────────────────────────────────── */
+function bbPick(){
+  const f=($('bb-file')||{}).files&&$('bb-file').files[0];
+  if(!f){ return; }
+  if(!/^image\//.test(f.type||'')){ bbMsg('That file is not an image',false); return; }
+  const r=new FileReader();
+  r.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      /* Stored in the layout so the editor can restore it, so it is downscaled
+         once here (longest side 900 px, JPEG) instead of being kept at full size
+         inside notices.json. */
+      const max=900, s=Math.min(1, max/Math.max(img.width,img.height));
+      const w=Math.max(1,Math.round(img.width*s)), h=Math.max(1,Math.round(img.height*s));
+      const tmp=document.createElement('canvas'); tmp.width=w; tmp.height=h;
+      const tx=tmp.getContext('2d');
+      tx.fillStyle=BBEDIT.L.card.bg||'#ffffff'; tx.fillRect(0,0,w,h);
+      tx.drawImage(img,0,0,w,h);
+      let src=tmp.toDataURL('image/jpeg',0.9);
+      if(tmp.toDataURL('image/png').length<src.length*0.75) src=tmp.toDataURL('image/png');
+      bbPlace(src,img.width,img.height);
+      bbMsg('Picture placed at '+w+'x'+h+' — drag it, or resize it from the corner',true);
+    };
+    img.onerror=()=>bbMsg('That file is not an image the browser can read',false);
+    img.src=r.result;
+  };
+  r.readAsDataURL(f);
+}
+function bbPlace(src,w,h){
+  const L=BBEDIT.L;
+  const box=Math.min(CARD_W-88,540);
+  const avail=Math.max(80, CARD_H-(L.head.on?L.head.h:0)-40);
+  const s=Math.min(box/w, avail/h, 1.6);
+  const iw=Math.max(24,Math.round(w*s)), ih=Math.max(24,Math.round(h*s));
+  L.image=Object.assign({opacity:1,radius:6,border:1,borderColor:'#2196c9',fit:'contain'},
+    L.image||{},{src:src,w:iw,h:ih,x:Math.round((CARD_W-iw)/2),
+      y:Math.max(8,Math.round((L.head.on?L.head.h:0)+18))});
+  L.image.w=iw; L.image.h=ih;
+  BBEDIT._src=null; BBEDIT._img=null;
+  BBEDIT.sel={kind:'image'};
+  const f=$('bb-file'); if(f) f.value='';
+  bbDraw(); bbOverlay(); bbInspector();
+}
+function bbPicFit(){
+  const I=BBEDIT.L.image; if(!I||!BBEDIT._img) return;
+  const w=BBEDIT._img.width, h=BBEDIT._img.height;
+  const box=Math.min(CARD_W-88,540), avail=Math.max(80,CARD_H-(BBEDIT.L.head.on?BBEDIT.L.head.h:0)-40);
+  const s=Math.min(box/w,avail/h,1.6);
+  I.w=Math.round(w*s); I.h=Math.round(h*s);
+  I.x=Math.round((CARD_W-I.w)/2); I.y=Math.max(8,Math.round((BBEDIT.L.head.on?BBEDIT.L.head.h:0)+18));
+  bbDraw(); bbSync();
+}
+function bbPicCentre(){ const I=BBEDIT.L.image; if(!I) return;
+  I.x=Math.round((CARD_W-I.w)/2); I.y=Math.round((CARD_H-I.h)/2); bbDraw(); bbSync(); }
+function bbPicRemove(){
+  if(!BBEDIT.L.image) return;
+  BBEDIT.L.image=null; BBEDIT._img=null; BBEDIT._src=null;
+  BBEDIT.sel=BBEDIT.L.texts.length?{kind:'text',k:0}:null;
+  const f=$('bb-file'); if(f) f.value='';
+  bbDraw(); bbOverlay(); bbInspector();
+  bbMsg('Picture removed from the card — the layout keeps everything else');
+}
+
+/* ── motion from a video ─────────────────────────────────────────────────────
+   The board's panel cannot play a video: SOL::ResLoader hands the URL to a
+   Loader for swf/jpg/png/gif only, and a Loader decodes a GIF to its FIRST frame
+   (Flash's GIF import is static; the game's own .gif assets are stills), so an
+   animated GIF would sit there motionless and an animated SWF cannot be built or
+   verified here.  What is delivered instead is frame-accurate: scrub the video,
+   take the frame you want onto the card, build a filmstrip of eight frames to
+   choose from, and preview the motion inside the editor so you can see it while
+   you choose.  The card the game shows is the still you pick. */
+function bbVideo(){
+  const f=($('bb-video')||{}).files&&$('bb-video').files[0];
+  if(!f){ BBEDIT.vidUrl=''; BBEDIT.vidName=''; BBEDIT.thumbs=[]; bbInspector(); return; }
+  if(BBEDIT.vidUrl){ try{ URL.revokeObjectURL(BBEDIT.vidUrl) }catch(e){} }
+  BBEDIT.vidUrl=URL.createObjectURL(f); BBEDIT.vidName=f.name||'video'; BBEDIT.thumbs=[];
+  bbInspector();
+  const v=$('bb-vid'); if(v) v.load();
+}
+function bbVid(){
+  const v=$('bb-vid');
+  if(!v){ bbMsg('Pick a video file first',false); return null; }
+  if(!v.videoWidth){ bbMsg('The video is still loading — try again in a second',false); return null; }
+  return v;
+}
+function bbSeek(v,t){
+  return new Promise(res=>{
+    let done=false;
+    const fin=()=>{ if(done) return; done=true; v.removeEventListener('seeked',fin); res(); };
+    v.addEventListener('seeked',fin);
+    try{ v.currentTime=Math.max(0,t) }catch(e){ fin() }
+    setTimeout(fin,4000);
+  });
+}
+function bbGrab(v,w,h){
+  const c=document.createElement('canvas');
+  c.width=Math.max(1,w|0); c.height=Math.max(1,h|0);
+  c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+  return c.toDataURL('image/jpeg',0.9);
+}
+async function bbUseFrame(){
+  const v=bbVid(); if(!v) return;
+  bbMsg('Reading that frame…');
+  const src=bbGrab(v,v.videoWidth,v.videoHeight);
+  const w=v.videoWidth,h=v.videoHeight;
+  bbPlace(src,w,h);
+  bbMsg('Frame placed on the card — drag it, then Save &amp; publish',true);
+}
+async function bbFilmstrip(){
+  const v=bbVid(); if(!v) return;
+  const dur=(isFinite(v.duration)&&v.duration>0)?v.duration:1.0;
+  bbMsg('Reading eight frames…');
+  const out=[];
+  for(let k=0;k<8;k++){
+    const t=Math.min(Math.max(0,dur-0.05), dur*(k+0.5)/8);
+    await bbSeek(v,t);
+    out.push(bbGrab(v,v.videoWidth,v.videoHeight));
+  }
+  BBEDIT.thumbs=out;
+  bbInspector();
+  bbMsg('Filmstrip ready — click a frame to put it on the card',true);
+}
+async function bbUseThumb(k){
+  const src=(BBEDIT.thumbs||[])[k]; if(!src) return;
+  const v=$('bb-vid');
+  const w=(v&&v.videoWidth)||694, h=(v&&v.videoHeight)||390;
+  bbPlace(src,w,h);
+  bbMsg('Frame '+(k+1)+' placed on the card',true);
+}
+let BBPREV=null;
+function bbPreviewMotion(){
+  if(BBPREV){ clearInterval(BBPREV); BBPREV=null; BBEDIT.prev=false; BBEDIT._img=null; BBEDIT._src=null; bbDraw(); bbMsg(''); return; }
+  /* When motion is on, preview THE MOTION (the frames that will be published), at the
+     same pace the client uses - so what you watch here is what the board does. */
+  const on=bbMotionOn();
+  const frames=on?bbMot().frames.slice():(BBEDIT.thumbs||[]);
+  if(frames.length<2){ bbMsg(on?'The motion has no frames':'Build the filmstrip first (eight frames)',false); return; }
+  const pace=Math.min(400,Math.max(70,1500/frames.length));
+  const imgs=[]; let left=frames.length, done=false;
+  const start=()=>{
+    if(done) return; done=true;
+    let k=0;
+    BBPREV=setInterval(()=>{
+      BBEDIT.prev=true; BBEDIT._img=imgs[k%imgs.length]; bbDraw(); k++;
+    },pace);
+    bbMsg(on?'Previewing the motion inside the editor — the board animates exactly these frames once published'
+            :'Previewing the motion inside the editor — the board itself shows the still you pick',true);
+    setTimeout(()=>{ if(BBPREV){ clearInterval(BBPREV); BBPREV=null; BBEDIT.prev=false; BBEDIT._img=null; BBEDIT._src=null; bbDraw(); } },
+               Math.max(5200,frames.length*pace*2));
+  };
+  frames.forEach((src,k)=>{ const im=new Image(); im.onload=()=>{ imgs[k]=im; if(--left<=0) start() };
+                            im.onerror=()=>{ if(--left<=0) start() }; im.src=src });
+}
+
+/* ── turning motion ON: frames in, sprite sheet out ───────────────────────────
+   The animation is built from pictures, because the picture slot is the one part of
+   the card the sheet lets move.  Two sources, both read IN THE BROWSER: a GIF is
+   decoded frame by frame with ImageDecoder (Chromium; the UI says so when it is
+   missing), and a video is sampled through the filmstrip.  Frames are capped and
+   downscaled, so a strip stays inside the server's 4 MB PNG limit. */
+function bbMotionSetFrames(v){
+  BBEDIT.mf=Math.max(2,Math.min(BB_MOTION_MAX,parseInt(v,10)||BB_MOTION_DEF));
+  bbInspector();
+}
+async function bbMotionUse(srcs,label){
+  if(!BBEDIT||!srcs||srcs.length<2){ bbMsg('Not enough '+label+' frames to animate',false); return; }
+  window.__bbmotion={busy:true, frames:0, label:label};     /* the harness watches this */
+  const want=Math.max(2,Math.min(BB_MOTION_MAX,(BBEDIT.mf||BB_MOTION_DEF)));
+  const pick=bbEvenPick(srcs.length,want).map(i=>srcs[i]);
+  bbMsg('Reading '+pick.length+' frames…');
+  const out=[];
+  for(const s of pick){
+    const d=await new Promise(r=>bbShrink(s,BB_FRAME_MAXW,r));
+    if(d) out.push(d);
+  }
+  if(out.length<2){ window.__bbmotion={busy:false,frames:0,label:label};
+                    bbMsg('Could not read enough '+label+' frames — nothing was changed',false); return; }
+  const L=BBEDIT.L;
+  if(!L.image){
+    const im=await new Promise(res=>{ const i=new Image(); i.onload=()=>res(i);
+                                      i.onerror=()=>res(null); i.src=out[0]; });
+    const w=(im&&(im.naturalWidth||im.width))||CARD_W, h=(im&&(im.naturalHeight||im.height))||CARD_H;
+    bbPlace(out[0],w,h);          /* motion lives in the picture slot: give it one */
+  }
+  L.motion={on:true,count:out.length,frames:out};
+  BBEDIT._src=null; BBEDIT._img=null;
+  bbDraw(); bbOverlay(); bbInspector();
+  window.__bbmotion={busy:false, frames:out.length, label:label};
+  bbMsg('Motion on — '+out.length+' frames of the '+bEsc(label)+'. The board loops them through the '+
+        'picture slot (~'+bbMotionLoopSecs()+' s per cycle) while the text and the card stay still. '+
+        'Press Save &amp; publish.',true);
+}
+async function bbMotionFromThumbs(){
+  if(!BBEDIT) return;
+  const t=(BBEDIT.thumbs||[]).slice();
+  if(t.length<2){ bbMsg('Build the filmstrip first (the 8-frame button above)',false); return; }
+  await bbMotionUse(t,'video');
+}
+async function bbGifFrames(file){
+  if(typeof ImageDecoder==='undefined') return 'noint';
+  let dec=null;
+  try{
+    dec=new ImageDecoder({data:await file.arrayBuffer(),type:file.type||'image/gif'});
+    await dec.tracks.ready;                 /* selectedTrack is null until this resolves */
+    const track=dec.tracks.selectedTrack;
+    let n=(track&&track.frameCount)||0;
+    if(n<2){ await dec.completed; n=(dec.tracks.selectedTrack||{}).frameCount||0; }
+    if(n<2) return [];
+    const want=Math.max(2,Math.min(BB_MOTION_MAX,(BBEDIT.mf||BB_MOTION_DEF)));
+    const out=[];
+    for(const i of bbEvenPick(n,want)){
+      const r=await dec.decode({frameIndex:i});
+      const im=r.image;
+      const c=document.createElement('canvas');
+      c.width=im.displayWidth||im.codedWidth||1;
+      c.height=im.displayHeight||im.codedHeight||1;
+      c.getContext('2d').drawImage(im,0,0);
+      if(im.close) try{ im.close() }catch(e){}
+      out.push(c.toDataURL('image/png'));
+    }
+    return out;
+  }catch(e){ return []; }
+  finally{ if(dec&&dec.close) try{ dec.close() }catch(e){} }
+}
+async function bbGifMotion(){
+  if(!BBEDIT) return;
+  const f=($('bb-gif')||{}).files&&$('bb-gif').files[0];
+  if(!f){ bbMsg('Choose an animated GIF first',false); return; }
+  bbMsg('Reading the GIF frame by frame…');
+  const frames=await bbGifFrames(f);
+  if(frames==='noint'){
+    window.__bbmotion={busy:false,frames:0,label:'GIF',error:'noint'};
+    bbMsg('This browser cannot decode GIF frames (ImageDecoder is Chromium/Edge only) — use the video + filmstrip path instead',false);
+    return;
+  }
+  if(!frames||frames.length<2){
+    window.__bbmotion={busy:false,frames:0,label:'GIF',error:'oneframe'};
+    bbMsg('That GIF has only one frame (or could not be decoded) — a still is not motion',false);
+    return;
+  }
+  await bbMotionUse(frames,'GIF');
+}
+function bbClearMotion(){
+  if(!BBEDIT||!BBEDIT.L) return;
+  delete BBEDIT.L.motion;
+  bbDraw(); bbInspector();
+  bbMsg('Motion off — this notice publishes as one still card again. Press Save &amp; publish to put that in the game.',true);
+}
+/* Paint the whole strip with the ONE renderer: frame i is the same card drawn with
+   motion frame i in the picture slot.  This canvas is what gets uploaded. */
+function bbMotionSheet(){
+  const m=bbMot();
+  if(!m||m.frames.length<2) return Promise.resolve(null);
+  const L=BBEDIT.L, row=BOARD[BSEL], n=m.frames.length;
+  const c=document.createElement('canvas');
+  c.width=CARD_W*n; c.height=CARD_H;
+  const g=c.getContext('2d');
+  return new Promise(res=>{
+    let left=n, bad=false;
+    const done=(i,im)=>{
+      if(im){ g.save(); g.translate(i*CARD_W,0); bbRender(g,L,im,row); g.restore(); }
+      else bad=true;
+      if(--left<=0) res(bad?null:c);
+    };
+    m.frames.forEach((src,i)=>{
+      const im=new Image();
+      im.onload=()=>done(i,im);
+      im.onerror=()=>done(i,null);
+      im.src=src;
+    });
+  });
+}
+
+/* ── the pane ─────────────────────────────────────────────────────────────── */
+function bbPane(){
+  const box=$('bb-pane'); if(!box) return;
+  if(BSEL===null || !BOARD[BSEL]){ box.innerHTML=bbOverview(); BBEDIT=null; bbDirtyUI(); return; }
+  const i=BSEL, n=BOARD[i];
+  bbEditFor(i);
+  const page=Math.floor(i/PAGESIZE)+1, slot=i%PAGESIZE;
+  box.innerHTML=`
+    <h2>${bEsc(n.title||'(no title yet)')}
+      <span class="pill dirty" id="bb-dirty" hidden>Unsaved changes</span></h2>
+    <p class="hint">Row ${i+1} of ${BOARD.length} — the game draws it as
+      <code>notice${slot}</code> on page ${page}. This ${CARD_W}x${CARD_H} card is what the game
+      serves at <code>/notice/content/${bEsc(n.id)}.png</code>; the tabs on the right hold every
+      control, and each tab scrolls on its own.</p>
+    <div class="bb-edit">
+      <div class="bb-stagecol">
+        <div class="bb-tools">
+          <button class="btn sm" type="button" onclick="bbAddText()">+ Text block</button>
+          <button class="btn sm ghost" type="button" onclick="bbPickImage()">Picture</button>
+          <button class="btn sm ghost" type="button" onclick="$('bb-file').click()">Choose picture…</button>
+          <button class="btn sm ghost" type="button" onclick="bbPickVideo()">Video…</button>
+          <span class="hint" id="bb-selnote"></span>
+        </div>
+        <input type="file" id="bb-file" accept="image/*" onchange="bbPick()" hidden>
+        <div class="bb-stage" id="bb-stage">
+          <canvas id="bb-canvas" width="${CARD_W}" height="${CARD_H}"></canvas>
+          <div class="bb-over" id="bb-over"></div>
+        </div>
+        <div class="bb-nudge">
+          <span class="hint">Nudge the selected element:</span>
+          <button class="btn sm ghost" type="button" onclick="bbNudge(-10,0)">←</button>
+          <button class="btn sm ghost" type="button" onclick="bbNudge(10,0)">→</button>
+          <button class="btn sm ghost" type="button" onclick="bbNudge(0,-10)">↑</button>
+          <button class="btn sm ghost" type="button" onclick="bbNudge(0,10)">↓</button>
+          <button class="btn sm ghost" type="button" onclick="bbResetLayout()">Reset layout</button>
+        </div>
+        <div class="bb-under">
+          <div class="bb-bar">
+            <button class="btn primary sm" type="button" onclick="bbSendCard(${i})">Save card image</button>
+            <button class="btn ghost sm" type="button" onclick="bbClearImage(${i})">Remove saved card</button>
+            <span class="hint" id="bb-img-note">${bbImageNote(n)}</span>
+          </div>
+          <div class="field" style="margin:0"><label>Now in game</label>
+            <img id="bb-live" alt="the card the game shows now"
+              title="the card the board shows today"
+              style="display:block;max-width:130px;border:1px solid var(--line);
+                     border-radius:8px;background:#eaf6fd"></div>
+        </div>
+      </div>
+      <aside class="bb-insp" id="bb-insp"></aside>
+    </div>
+    <div class="bb-bar">
+      <button class="btn ghost sm" onclick="bbMove(${i},-1)">↑ Up</button>
+      <button class="btn ghost sm" onclick="bbMove(${i},1)">↓ Down</button>
+      <button class="btn ghost sm" onclick="bbDupe(${i})">Duplicate</button>
+      <button class="btn ghost sm danger" onclick="bbDel(${i})">Remove</button>
+      <button class="btn primary spread" onclick="bbSave()">Save &amp; publish</button>
+    </div>`;
+  bbDraw();
+  bbOverlay();
+  bbInspector();
+  bbCardLoad(n);
+  bbFitSoon();
+}
+function bbOverview(){
+  const empty=!BOARD.length;
+  return `
+    <h2>Billboard <span class="pill">${BOARD.length} row${BOARD.length===1?'':'s'} ·
+      ${Math.max(1,Math.ceil(BOARD.length/PAGESIZE))} page(s)</span></h2>
+    <p class="hint">What the castle hall's 佈告欄 shows in game. Pick a notice on the left to
+      edit it. Eight rows fill one page; the ninth and later sit behind the game's right arrow.
+      Rows are read live, so saving shows up the next time a player opens the board — no restart,
+      no re-login.</p>
+    ${empty?'<p class="hint"><b>It is empty on purpose:</b> the board opens with nothing on it until you add the first row.</p>':''}
+    <p class="bb-dirtynote" id="bb-dirty-hint" hidden><span>
+      <b>Unsaved changes</b> — something on this board has been edited, added or removed
+      but not published. Open the notice and press <b>Save &amp; publish</b>, or the game
+      keeps showing what is stored now.</span></p>
+    <div class="actions" style="margin-top:14px">
+      <button class="btn primary" onclick="bbAdd()">+ Add notice</button>
+      <button class="btn ghost" onclick="bbExample()">Add an example row</button>
+    </div>
+    ${BINFO.path?`<p class="hint">Stored in <code>${bEsc(BINFO.path)}</code></p>`:''}`;
+}
+function bbAdd(){
+  if(!bbLeaveOK()) return;    /* adding a row moves you off the notice you were editing */
+  BOARD.push({id:BOARD.length+1,createDate:new Date().toISOString().slice(0,10),
+              title:'',stars:5,body:'',new:true,art:2,layout:null});
+  BSEL=BOARD.length-1; SUB='billboard'; PAGE='settings';
+  BBEDIT=null;
+  renderNavigation(); bbPane();
+  bbMsg('Row added — build the card on the right, then Save &amp; publish');
+}
+function bbExample(){
+  BOARD.push({id:BOARD.length+1,createDate:new Date().toISOString().slice(0,10),
+    title:'告示板由你話事',stars:5,new:true,art:2,layout:null,
+    body:'這張公告是在帳號網站的 Admin → Billboard 加的，遊戲裡一開佈告欄就會見到。'});
+  BSEL=BOARD.length-1; SUB='billboard'; PAGE='settings';
+  BBEDIT=null;
+  renderNavigation(); bbPane(); bbMsg('Example row added — edit it, then Save &amp; publish');
+}
+function bbStars(i,v){ BOARD[i].stars=v; bbRail(); bbPane(); }
+function bbArt(i,v){ BOARD[i].art=v; bbPane(); }
+function bbMove(i,d){
+  const j=i+d; if(j<0||j>=BOARD.length) return;
+  [BOARD[i],BOARD[j]]=[BOARD[j],BOARD[i]];
+  BSEL=j; BBEDIT=null; bbRail(); bbPane();
+}
+function bbDupe(i){
+  const copy=Object.assign({},BOARD[i]);
+  if(BOARD[i].layout) copy.layout=JSON.parse(JSON.stringify(BOARD[i].layout));
+  BOARD.splice(i+1,0,copy);
+  BSEL=i+1; BBEDIT=null; bbRail(); bbPane(); bbMsg('Duplicated — press Save &amp; publish');
+}
+function bbDel(i){
+  BOARD.splice(i,1);
+  BSEL = BOARD.length ? Math.min(i,BOARD.length-1) : null;
+  BBEDIT=null; bbRail(); bbPane(); bbMsg('Row removed — press Save &amp; publish');
+}
+async function bbSave(){
+  const i=BSEL, n=BOARD[i];
+  if(!n){ return; }
+  if(BBEDIT && BBEDIT.i===i) n.layout=BBEDIT.L;
+  bbMsg('Saving…');
+  const {ok,data}=await api('/web/api/admin/notices',{method:'POST',
+    body:JSON.stringify({notices:BOARD})});
+  if(!ok){ bbMsg(data.error||'Could not save the billboard',false); return; }
+  const back=Array.isArray(data.notices)&&data.notices.length>=BOARD.length;
+  BOARD=(back?data.notices:BOARD); BINFO=data;
+  if(BSEL!==null && !BOARD[BSEL]) BSEL = BOARD.length?0:null;
+  /* the row and the card go together: the PNG is composed from the very layout
+     that was just stored, so reopening the editor and the board agree */
+  await bbSendCard(i,true);
+  bbRail(); bbPane();
+  bbMarkSynced();   /* stored and published: nothing is pending any more */
+  bbMsg((BBWARN?'⚠ '+BBWARN:'')+'Saved — the board updates the next time a player opens it',!BBWARN);
+}
+/* ── the composed card: the PNG the game fetches ─────────────────────────── */
+function bbImageNote(n){
+  const b=(BINFO.images||{})[String(n.id)];
+  return b?`card saved — ${b} bytes`:'no card saved yet — the game shows a blank card';
+}
+function bbCardLoad(n){
+  /* The picture slot is what the LAYOUT holds (restored from notices.json), never
+     the composed card already in the game: that one has its own text burned in, so
+     loading it back stacked old text under new text.  The live card is shown beside
+     the canvas as a reference instead. */
+  const live=$('bb-live'); if(!live) return;
+  live.src='/notice/content/'+(n&&n.id?n.id:'empty')+'.png?t='+Date.now();
+  /* An animated notice is published as an N-frame strip; this reference thumbnail
+     must show ONE frame of it, not the whole filmstrip squashed into 130 px. */
+  const m=n&&n.layout&&n.layout.motion;
+  const nf=(m&&m.on&&Array.isArray(m.frames)&&m.frames.length>=2)?m.frames.length:0;
+  const box=live.parentElement, W=130, H=Math.round(W*510/694);
+  if(box&&nf){
+    box.style.overflow='hidden'; box.style.width=W+'px'; box.style.height=H+'px';
+    box.style.position='relative';
+    live.style.maxWidth='none'; live.style.position='absolute';
+    live.style.left='0'; live.style.top='0';
+    live.style.width=(W*nf)+'px'; live.style.height=H+'px';
+  } else if(box){
+    box.style.overflow=''; box.style.width=''; box.style.height=''; box.style.position='';
+    live.style.maxWidth='130px'; live.style.position=''; live.style.left='';
+    live.style.top=''; live.style.width=''; live.style.height='';
+  }
+}
+/* Set by bbSendCard when a publish could not deliver what the editor showed; bbSave
+   prints it together with its own message so it is not wiped before it is read. */
+let BBWARN='';
+async function bbSendCard(i,quiet){
+  const n=BOARD[i]; if(!n) return false;
+  if(BBEDIT && BBEDIT.i===i) n.layout=BBEDIT.L;
+  await new Promise(res=>bbWhenReady(res));
+  let png;
+  const hasPic=!!(BBEDIT&&BBEDIT.L&&BBEDIT.L.image&&BBEDIT.L.image.src);
+  if(bbMotionOn() && !hasPic){
+    /* Motion needs something to move.  Rather than publish a strip of identical
+       frames, say so and publish the still.  The note is carried out of here so
+       bbSave's own "Saved" message cannot wipe it before the operator reads it. */
+    BBWARN='Motion is on but the card has no picture to move — the still card was published instead. ';
+    bbMsg(BBWARN,false);
+  } else {
+    BBWARN='';
+  }
+  if(bbMotionOn() && hasPic){
+    /* The animation IS the published file: paint the whole strip with the same
+       renderer and upload that one (694*N)x510 PNG to the same URL. */
+    const sheet=await bbMotionSheet();
+    if(!sheet){ bbMsg('The motion frames could not be re-read — the animation was NOT published',false); return false; }
+    png=sheet.toDataURL('image/png');
+    const bytes=Math.round(png.length*0.75);
+    if(bytes>BB_SHEET_MAXB){
+      bbMsg('That strip is '+Math.round(bytes/1e6)+' MB — over the 4 MB the board accepts. '+
+            'Use fewer frames, or a smaller picture.',false);
+      return false;
+    }
+  } else {
+    bbDraw();
+    const c=$('bb-canvas'); if(!c) return false;
+    png=c.toDataURL('image/png');
+  }
+  const {ok,data}=await api('/web/api/admin/notice_image',{method:'POST',
+    body:JSON.stringify({id:n.id, png:png})});
+  if(!ok){ bbMsg(data.error||'Could not save the card',false); return false; }
+  BINFO.images=data.images||BINFO.images;
+  const note=$('bb-img-note'); if(note) note.textContent=bbImageNote(n);
+  if(!quiet) bbMsg('Card saved — reopen the board in game to see it',true);
+  return true;
+}
+async function bbClearImage(i){
+  const n=BOARD[i]; if(!n) return;
+  const {ok,data}=await api('/web/api/admin/notice_image',{method:'POST',
+    body:JSON.stringify({id:n.id, png:''})});
+  if(!ok){ bbMsg(data.error||'Could not remove the card',false); return; }
+  BINFO.images=data.images||{};
+  const note=$('bb-img-note'); if(note) note.textContent=bbImageNote(n);
+  bbMsg('Saved card removed — the game shows a blank card again until you save one',true);
+  bbCardLoad(n);
+}
+function bbPickVideo(){ const v=$('bb-video'); if(v) v.click(); }
+
+/* Clip one line to a width with an ellipsis (header band). */
+function bbClipText(x,s,maxW){
+  s=String(s||'');
+  if(x.measureText(s).width<=maxW) return s;
+  let cut=s;
+  while(cut.length>1 && x.measureText(cut+'…').width>maxW) cut=cut.slice(0,-1);
+  return cut+'…';
+}
+/* Wrap to a width.  Splits on spaces first, then by CHARACTER, because Chinese
+   text has no spaces and a space-only wrap lets one long paragraph run off the
+   edge instead of wrapping. */
+function bbWrapText(x,text,maxW){
+  const out=[];
+  maxW=Math.max(8,maxW);
+  String(text==null?'':text).replace(/\r/g,'').split('\n').forEach(par=>{
+    let line='';
+    par.split(' ').forEach(word=>{
+      const probe=line?line+' '+word:word;
+      if(x.measureText(probe).width<=maxW){ line=probe; return; }
+      if(line){ out.push(line); line=''; }
+      if(x.measureText(word).width<=maxW){ line=word; return; }
+      let cur='';
+      for(const ch of word){
+        if(cur && x.measureText(cur+ch).width>maxW){ out.push(cur); cur=ch; }
+        else cur+=ch;
+      }
+      line=cur;
+    });
+    out.push(line);
+  });
+  while(out.length>1 && out[out.length-1]==='') out.pop();
+  return out;
+}
+
+/* ── the inspector ────────────────────────────────────────────────────────── */
+const bbF=(label,inner)=>`<label>${label}</label>${inner}`;
+function bbColourInput(path,val){
+  return `<span class="bb-col"><input type="color" data-path="${path}" value="${bEsc(val||'#000000')}"
+    oninput="bbStr('${path}',this.value)"><input type="text" class="bb-hex" data-path="${path}"
+    value="${bEsc(val||'')}" oninput="bbStr('${path}',this.value)"></span>`;
+}
+function bbNumInput(path,val,lo,hi){
+  return `<input type="number" data-path="${path}" value="${Math.round((val||0)*100)/100}"
+    step="1" oninput="bbNum('${path}',this.value,${lo},${hi})">`;
+}
+function bbPct3(v,lo,hi,path,suffix){
+  return `<div class="bb-pair"><input type="range" data-path="${path}" min="${lo}" max="${hi}"
+    step="1" value="${Math.round(v)}" oninput="bbNum('${path}',this.value,${lo},${hi})">
+    <input type="number" data-path="${path}" min="${lo}" max="${hi}" value="${Math.round(v)}"
+    oninput="bbNum('${path}',this.value,${lo},${hi})">${suffix?'<span class="u">'+suffix+'</span>':''}</div>`;
+}
+function bbInsCard(L){
+  const c=L.card;
+  return `<div class="bb-box"><h4>Card style</h4>
+    <div class="bb-chips">${BBPRESETS.map((p,k)=>
+      `<button type="button" onclick="bbPreset(${k})">${p[0]}</button>`).join('')}
+      <button type="button" class="gh" onclick="$('bb-file').click()">Picture…</button></div>
+    <div class="row"><div>${bbF('Background',bbColourInput('card.bg',c.bg))}</div>
+      <div>${bbF('Fade / second colour',bbColourInput('card.bg2',c.bg2))}</div></div>
+    <div class="row"><div>${bbF('Gradient',`<select data-path="card.grad" onchange="bbStr('card.grad',this.value)">${
+      BBGRADS.map(g=>`<option value="${g[0]}"${c.grad===g[0]?' selected':''}>${g[1]}</option>`).join('')}</select>`)}</div>
+      <div>${bbF('Pattern',`<select data-path="card.pattern" onchange="bbStr('card.pattern',this.value)">${
+      BBPATTERNS.map(g=>`<option value="${g[0]}"${c.pattern===g[0]?' selected':''}>${g[1]}</option>`).join('')}</select>`)}</div></div>
+    <div class="row">${bbF('Pattern colour',bbColourInput('card.patternColor',c.patternColor))}
+      ${bbF('Border',bbColourInput('card.border',c.border))}</div>
+    <div class="row">${bbF('Border width',bbPct3(c.borderW,0,40,'card.borderW','px'))}
+      ${bbF('Corner radius',bbPct3(c.radius,0,160,'card.radius','px'))}</div>
+  </div>`;
+}
+function bbInsHead(L){
+  const h=L.head, off=!h.on;
+  return `<div class="bb-box"><h4>Header band — the notice's title</h4>
+    <div class="bb-chips">
+      <button type="button" class="hd ${h.on?'on':''}" aria-pressed="${!!h.on}"
+        onclick="bbHeadOn(true)">▶ Shown on the card</button>
+      <button type="button" class="hd ${off?'on':''}" aria-pressed="${off}"
+        onclick="bbHeadOn(false)">✕ Hidden — body only</button></div>
+    <p class="bb-bandnote"><b>${off?'The band is removed.':'The band is shown.'}</b>
+      ${off?'The card is body only: no title, no divider rule and no gap where they were — the content starts at the very top of the 694x510 card. The band settings below are kept (and marked) for when you show it again.':'The title sits in its own band at the top of the card, over the body content.'}
+      The choice is saved with this notice, so it comes back the way you left it.</p>
+    <div class="bb-bandset${off?' off':''}" style="margin-top:10px">
+    <p class="bb-bandnote" style="margin:0 0 8px">These apply <b>when the band is shown</b>.
+      With it removed they are kept for the next time you show it, and changing them now
+      changes nothing on the card.</p>
+    <div class="row">${bbF('Band height',bbPct3(h.h,0,220,'head.h','px'))}
+      ${bbF('Side padding',bbPct3(h.pad,0,300,'head.pad','px'))}</div>
+    <div class="row">${bbF('Band colour',bbColourInput('head.band',h.band))}
+      ${bbF('Rule colour',bbColourInput('head.rule',h.rule))}</div>
+    <div class="row">${bbF('Title colour',bbColourInput('head.text',h.text))}
+      ${bbF('Title alignment',`<select data-path="head.align" onchange="bbStr('head.align',this.value)">${
+        BBALIGN.map(a=>`<option value="${a[0]}"${h.align===a[0]?' selected':''}>${a[1]}</option>`).join('')}</select>`)}</div>
+    ${bbF('Title font',`<select data-path="head.family" onchange="bbStr('head.family',this.value)">${bbFontOptions(h.family)}</select>`)}
+    <div class="row">${bbF('Title size',bbPct3(h.size,6,140,'head.size','px'))}
+      ${bbF('Title weight',bbPct3(h.weight,100,900,'head.weight',''))}</div>
+    ${bbF('Title text (blank = the notice title)',`<input type="text" data-path="head.title"
+      value="${bEsc(h.title||'')}" placeholder="${bEsc(BOARD[BSEL]?BOARD[BSEL].title:'')}"
+      oninput="bbStr('head.title',this.value)">`)}
+    </div>
+  </div>`;
+}
+function bbInsPic(L){
+  const I=L.image;
+  if(!I) return `<div class="bb-box"><h4>Picture</h4>
+    <p class="hint" style="margin:0 0 8px">No picture on the card yet. A picture becomes a
+      positioned element you can drag and resize.</p>
+    <button class="btn sm" type="button" onclick="$('bb-file').click()">Choose picture…</button>
+  </div>`;
+  return `<div class="bb-box"><h4>Picture${bbIsSel({kind:'image'})?' — selected':''}</h4>
+    <div class="bb-chips">
+      <button type="button" class="${bbIsSel({kind:'image'})?'on':''}" onclick="bbPickImage()">Select</button>
+      <button type="button" onclick="$('bb-file').click()">Replace…</button>
+      <button type="button" onclick="bbPicFit()">Fit to card</button>
+      <button type="button" onclick="bbPicCentre()">Centre</button>
+      <button type="button" onclick="bbPicRemove()">Remove</button></div>
+    <div class="row">${bbF('X',bbNumInput('image.x',I.x,-2000,4000))}${bbF('Y',bbNumInput('image.y',I.y,-2000,4000))}</div>
+    <div class="row">${bbF('Width',bbPct3(I.w,24,CARD_W,'image.w','px'))}
+      ${bbF('Height',bbPct3(I.h,24,CARD_H,'image.h','px'))}</div>
+    <div class="row">${bbF('Fit',`<select data-path="image.fit" onchange="bbStr('image.fit',this.value)">${
+      [['contain','Fit inside'],['cover','Fill (crop)'],['fill','Stretch']].map(f=>
+        `<option value="${f[0]}"${I.fit===f[0]?' selected':''}>${f[1]}</option>`).join('')}</select>`)}
+      ${bbF('Opacity',bbPct3((I.opacity==null?1:I.opacity)*100,0,100,'image.opacity','%'))}</div>
+    <div class="row">${bbF('Corner radius',bbPct3(I.radius||0,0,120,'image.radius','px'))}
+      ${bbF('Border width',bbPct3(I.border||0,0,20,'image.border','px'))}</div>
+    ${bbF('Border colour',bbColourInput('image.borderColor',I.borderColor||'#2196c9'))}
+    <p class="hint" style="margin:6px 0 0">Opacity is 0–100% here; drag on the card to move it.</p>
+  </div>`;
+}
+function bbInsTexts(L){
+  const sel=BBEDIT.sel, out=[`<div class="bb-box"><h4>Text blocks</h4>
+    <div class="bb-chips">
+      ${(L.texts||[]).map((t,k)=>`<button type="button" class="${bbIsSel({kind:'text',k:k})?'on':''}"
+        onclick="bbPickText(${k})">Text ${k+1}</button>`).join('')}
+      <button type="button" onclick="bbAddText()">+ Add</button></div>`];
+  if(!(L.texts||[]).length){
+    out.push(`<p class="hint" style="margin:0">No text blocks yet. A block is fully styled:
+      font, size, weight, colour, alignment and position — add as many as you like.</p></div>`);
+    return out.join('');
+  }
+  const k=(sel&&sel.kind==='text'&&L.texts[sel.k])?sel.k:0, t=L.texts[k];
+  out.push(`
+    ${bbF('Text',`<textarea rows="3" data-path="texts.${k}.text"
+      oninput="bbStr('texts.${k}.text',this.value)">${bEsc(t.text)}</textarea>`)}
+    ${bbF('Font',`<select data-path="texts.${k}.family" onchange="bbStr('texts.${k}.family',this.value)">${
+      bbFontOptions(t.family)}</select>`)}
+    <div class="row">${bbF('Size',bbPct3(t.size,6,160,'texts.'+k+'.size','px'))}
+      ${bbF('Line height',bbPct3(t.lh||1.45,0.8,3,'texts.'+k+'.lh','×'))}</div>
+    <div class="row">${bbF('Weight',bbPct3(t.weight,100,900,'texts.'+k+'.weight',''))}
+      ${bbF('Alignment',`<select data-path="texts.${k}.align" onchange="bbStr('texts.${k}.align',this.value)">${
+        BBALIGN.map(a=>`<option value="${a[0]}"${t.align===a[0]?' selected':''}>${a[1]}</option>`).join('')}</select>`)}</div>
+    <div class="row">${bbF('Colour',bbColourInput('texts.'+k+'.color',t.color))}${bbF('&nbsp;',
+      `<label class="chk"><input type="checkbox" data-path="texts.${k}.italic" ${t.italic?'checked':''}
+        onchange="bbBool('texts.${k}.italic',this.checked)"> Italic</label>
+       <label class="chk"><input type="checkbox" data-path="texts.${k}.shadow" ${t.shadow?'checked':''}
+        onchange="bbBool('texts.${k}.shadow',this.checked)"> Shadow</label>`)}</div>
+    <div class="row">${bbF('X',bbNumInput('texts.'+k+'.x',t.x,-2000,4000))}
+      ${bbF('Y',bbNumInput('texts.'+k+'.y',t.y,-2000,4000))}</div>
+    ${bbF('Box width (text wraps to this)',bbPct3(t.w,24,CARD_W,'texts.'+k+'.w','px'))}
+    <div class="bb-chips">
+      <button type="button" onclick="bbMoveText(${k},-1)">Draw earlier</button>
+      <button type="button" onclick="bbMoveText(${k},1)">Draw later</button>
+      <button type="button" onclick="bbDupText(${k})">Duplicate</button>
+      <button type="button" onclick="bbDelText(${k})">Remove</button></div>
+  </div>`);
+  return out.join('');
+}
+function bbInsMotion(){
+  const v=BBEDIT, thumbs=v.thumbs||[], on=bbMotionOn();
+  const nf=on?bbMot().frames.length:0;
+  const mf=Math.max(2,Math.min(BB_MOTION_MAX,v.mf||(nf||BB_MOTION_DEF)));
+  const frameOpts=Array.from({length:BB_MOTION_MAX-1},(_,i)=>i+2)
+    .map(n=>`<option value="${n}"${n===mf?' selected':''}>${n} frames</option>`).join('');
+  const status=on
+    ? `ON — ${nf} frame${nf===1?'':'s'} of 694x${CARD_H} published side by side; the board shows one `+
+      `at a time and loops them (~${bbMotionLoopSecs()} s per cycle). The picture slot moves, `+
+      `the text and the card stay still.`
+    : `OFF — the card is published as the single 694x${CARD_H} still on the left, exactly as before.`;
+  return `<div class="bb-box"><h4>Motion from a video</h4>
+    <p class="hint" style="margin:0 0 8px"><b>The board cannot play a video.</b> The game loads this
+      card through a loader that accepts swf/jpg/png/gif and decodes a GIF to its FIRST frame only,
+      so neither a video file nor an animated GIF reaches the board as motion. What the board CAN
+      step through is a sprite sheet: turn motion on here and this card is published as up to
+      ${BB_MOTION_MAX} frames laid side by side, which the patched panel walks through on its own.
+      With motion off the card stays the one still you compose.</p>
+    <label>Frames in the animation (2–${BB_MOTION_MAX})</label>
+    <select id="bb-mframes" onchange="bbMotionSetFrames(this.value)">${frameOpts}</select>
+    <p class="hint" id="bb-mnote" style="margin:6px 0 0"><b>What the board will do:</b> ${status}</p>
+    <label style="margin-top:10px">Animated GIF</label>
+    <input type="file" id="bb-gif" accept="image/gif,image/*" onchange="bbGifMotion()">
+    <p class="hint" style="margin:4px 0 0">The GIF is read frame by frame in the browser
+      (Chromium/Edge only). On a browser without that, use a video below.</p>
+    <label style="margin-top:10px">Video</label>
+    <input type="file" id="bb-video" accept="video/*" onchange="bbVideo()">
+    ${v.vidUrl?`<video id="bb-vid" class="bb-vid" src="${v.vidUrl}" muted playsinline controls></video>
+    <div class="bb-chips">
+      <button type="button" onclick="bbUseFrame()">Use this frame</button>
+      <button type="button" onclick="bbFilmstrip()">Build 8-frame filmstrip</button>
+      <button type="button" onclick="bbPreviewMotion()">Preview motion</button></div>
+    <p class="hint" style="margin:4px 0 0">${bEsc(v.vidName)} — scrub the bar on the video, then take the frame.</p>
+    ${thumbs.length?`<div class="bb-thumbs">${thumbs.map((s,k)=>
+      `<button type="button" onclick="bbUseThumb(${k})" title="frame ${k+1}"><img src="${s}" alt="frame ${k+1}"></button>`).join('')}</div>
+      <p class="hint" style="margin:6px 0 0">Click a frame to put it on the card.</p>`:''}`
+    :`<p class="hint" style="margin:6px 0 0">Video files stay in the browser — nothing but the
+      frame you pick is uploaded.</p>`}
+    <div class="bb-chips" style="margin-top:10px">
+      <button type="button" onclick="bbMotionFromThumbs()">Animate from the filmstrip</button>
+      <button type="button" onclick="bbGifMotion()">Animate from the GIF</button>
+      <button type="button" onclick="bbPreviewMotion()">Preview motion</button>
+      <button type="button" onclick="bbClearMotion()">No motion — one still card</button></div>
+    <p class="hint" style="margin:6px 0 0">The animation moves the <b>picture</b> on the card: every
+      frame is the same card with the next picture. Everything else stays exactly where you put it.
+      Motion is published by <b>Save &amp; publish</b>, like any other change.</p>
+  </div>`;
+}
+/* ── the tabbed inspector ─────────────────────────────────────────────────────
+   One tab per job (the row, the card's own look, its header band, the picture, the
+   text blocks, motion), so every control is one click away instead of a long
+   scroll down a single column.  Only the chosen pane is laid out, and the pane
+   area - never the page - is what scrolls.  Save and the messages sit under the
+   tabs, so they are reachable from wherever you are. */
+const BBTABS=[['notice','Notice'],['card','Card'],['head','Header'],
+              ['pic','Picture'],['text','Text'],['video','Video']];
+let BBTAB='notice';
+function bbTab(k){ BBTAB=k; bbInspector(); }
+function bbInsNotice(n,i){
+  const art=parseInt(n.art,10)||2, stars=parseInt(n.stars,10)||0;
+  return `<div class="bb-box"><h4>Notice — the row in the game's list</h4>
+    <div class="preview">
+      <div class="pv-date">${bEsc(n.createDate||'0000-00-00')}</div>
+      <div class="pv-stars">${'★'.repeat(stars)}<span style="color:#3f3f46">${'★'.repeat(5-stars)}</span></div>
+      <div class="pv-title">${bEsc(n.title||'—')}</div>
+      <div class="pv-art">${art===1?'gears':art===3?'frame 3':'mailbox'}</div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div>${bbF('Date',`<input type="text" value="${bEsc(n.createDate)}"
+        placeholder="2026-09-17"
+        oninput="BOARD[${i}].createDate=this.value;bbRail()">`)}</div>
+      <div>${bbF('Stars',`<div class="stars">${[1,2,3,4,5].map(k=>
+        `<button type="button" class="st ${stars>=k?'on':''}" title="${k}"
+          onclick="bbStars(${i},${k})">★</button>`).join('')}
+        <button type="button" class="btn sm ghost" onclick="bbStars(${i},0)">None</button></div>`)}</div>
+    </div>
+    <label>Title — the band on the card and the row in the list</label>
+    <input type="text" value="${bEsc(n.title)}" placeholder="告示板由你話事"
+      oninput="BOARD[${i}].title=this.value;bbRail();bbDraw()">
+    <label class="chk" style="margin-top:8px"><input type="checkbox" ${n.new?'checked':''}
+      onchange="BOARD[${i}].new=this.checked"> Mark as NEW</label>
+    <label>Row artwork — the little card the game's list draws</label>
+    <div class="arts">
+      ${[[2,'Mailbox'],[1,'Gears'],[3,'Frame 3']].map(([v,t])=>
+        `<button type="button" class="btn sm${art===v?'':' ghost'}"
+          aria-current="${art===v}" onclick="bbArt(${i},${v})">${t}</button>`).join('')}
+    </div>
+    <p class="hint" style="margin:8px 0 0">The list row's date, title, stars and artwork are drawn
+      by the game's own panel (notice.swf), so their font is the publisher's and cannot be restyled
+      from here — the card behind the row is entirely yours.</p></div>`;
+}
+function bbInspector(){
+  const box=$('bb-insp'); if(!box||!BBEDIT) return;
+  const L=BBEDIT.L, i=BSEL, n=BOARD[i]||{};
+  if(!BBTABS.some(t=>t[0]===BBTAB)) BBTAB='notice';
+  const panes={notice:bbInsNotice(n,i),card:bbInsCard(L),head:bbInsHead(L),
+               pic:bbInsPic(L),text:bbInsTexts(L),video:bbInsMotion()};
+  box.innerHTML=`
+    <div class="bb-tabs" role="tablist" aria-label="Card editor sections">
+      ${BBTABS.map(t=>`<button type="button" role="tab" data-bbtab="${t[0]}"
+        aria-selected="${BBTAB===t[0]?'true':'false'}" title="${t[1]}"
+        class="${BBTAB===t[0]?'on':''}" onclick="bbTab('${t[0]}')">${t[1]}</button>`).join('')}
+    </div>
+    <div class="bb-tabpanes">
+      ${BBTABS.map(t=>`<div class="bb-tabpane${BBTAB===t[0]?' on':''}" role="tabpanel"
+        data-bbpane="${t[0]}">${panes[t[0]]}</div>`).join('')}
+    </div>
+    <div class="bb-foot">
+      <div class="bb-dirtynote" id="bb-dirtynote" hidden><span>
+        <b>Unsaved changes</b> — press <b>Save &amp; publish</b> to put this card in the game.
+        Leaving the editor or closing the page now keeps nothing you have edited.</span></div>
+      <div class="bb-box"><h4>Save</h4>
+        <div class="bb-chips">
+          <button type="button" onclick="bbSave()">Save &amp; publish</button>
+          <button type="button" onclick="bbSendCard(BBEDIT.i)">Save card image</button>
+          <button type="button" onclick="bbClearImage(BBEDIT.i)">Remove card</button></div>
+        <p class="hint" style="margin:6px 0 0">Re-renders
+          <code>/notice/content/${bEsc(n.id)}.png</code> from what you see.</p>
+        <p class="hint" id="bb-selinfo" style="margin:6px 0 0"></p></div>
+      <div id="bb-msg" class="hint"></div>
+    </div>`;
+  const info=$('bb-selinfo');
+  if(info){
+    const s=BBEDIT.sel;
+    if(s&&s.kind==='image') info.textContent='Selected: the picture — drag it on the card.';
+    else if(s&&s.kind==='text') info.textContent='Selected: Text '+(s.k+1)+' — drag it on the card.';
+    else info.textContent='Nothing selected — click the picture or a text block on the card.';
+  }
+  bbDirtyUI();        /* the marks live in this markup, so re-read them here */
+}
+/* Fit the two editor columns to what the window actually has left below the pane's
+   title, so the page itself never needs scrolling to reach a control.  The bottom
+   bar and the page's own padding are measured, not guessed. */
+function bbFit(){
+  const e=document.querySelector('.bb-edit'); if(!e) return;
+  if(!window.matchMedia('(min-width:1151px)').matches){ e.style.removeProperty('--bbh'); return; }
+  const bar=document.querySelector('#bb-pane > .bb-bar');
+  const barH=bar?bar.getBoundingClientRect().height+16:16;   /* the bar and its top margin */
+  const top=e.getBoundingClientRect().top+window.scrollY;    /* document offset: scroll-proof */
+  /* below the columns there is still the bar and the pane's own padding - all of it
+     has to fit, or the page gets a scrollbar of its own */
+  const slack=barH+16+16+12;
+  const h=Math.max(340,Math.floor(window.innerHeight-top-slack));
+  e.style.setProperty('--bbh',h+'px');
+}
+function bbFitSoon(){ bbFit(); requestAnimationFrame(()=>{ bbFit(); }); }
+window.addEventListener('resize',bbFit);
+window.addEventListener('load',bbFit);
+/* Closing or reloading the page with edits that were never published asks first.
+   The browser shows its own "leave site?" prompt - we only decide whether it
+   appears - and the card image and the layout both die with the page, so this is
+   the one place a silent loss would otherwise be invisible. */
+window.addEventListener('beforeunload',function(ev){
+  if(!bbIsDirty()) return;
+  ev.preventDefault();
+  ev.returnValue='You have unsaved billboard changes — press Save & publish.';
+  return ev.returnValue;
+});
+/* keep the old save bar working: it lives outside this block */
+
+/* ── the client folder ── */
+async function filesLoad(){
+  const {ok,data}=await api('/web/api/admin/game_dir');
+  if(!ok) return;
+  FILES=data;
+  if(SUB==='files') filesRender();
+}
+function filesRender(){
+  const box=$('files-body'); if(!box) return;
+  const d=FILES||{};
+  const how={env:'set by the launcher for this run',package:'inside the launcher package',
+             'game_dir.txt':'remembered from this page or the launcher',
+             'auto-detected':'found automatically on this machine'}[d.source]||d.source;
+  const state=d.installed?['good','client found']
+             :(d.exists?['bad','no index.swf in it']:['bad','folder missing']);
+  box.innerHTML=`
+    <div class="fstate">
+      <span class="pill ${state[0]}">${state[1]}</span>
+      <span class="fpath">${bEsc(d.path||'-')}</span>
+    </div>
+    <div class="list" style="margin-top:12px">
+      <div class="row"><span class="t"><b>Where that came from</b><span>${bEsc(how||'-')}</span></span></div>
+      <div class="row"><span class="t"><b>Saved setting</b><span>${d.configured?bEsc(d.configured):'not set — detected at every start'}</span></span></div>
+      <div class="row"><span class="t"><b>Client size</b><span class="mono">${d.swf_count} SWF files</span></span></div>
+    </div>
+    ${d.env?`<p class="hint">The launcher passed <code>${bEsc(d.env)}</code> to this run, and that
+      wins over the saved setting. Pick the folder in the launcher, or unset it, for this page's
+      choice to take over.</p>`:''}
+    <div class="block" style="margin-top:14px">
+      <div class="field"><label for="gd-path">Folder</label>
+        <input id="gd-path" value="${bEsc(d.configured||d.path)}" placeholder="/path/to/littleprince-online">
+        <p class="hint">The folder holding the client's SWF files (index.swf and login.swf).</p></div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary" onclick="filesSet()">Use this folder</button>
+        <button class="btn ghost" onclick="filesClear()">Detect automatically</button>
+      </div>
+      <div id="gd-msg" class="hint"></div>
+    </div>
+    <h3 class="sh">Found on this machine</h3>
+    <div class="cands">${(d.candidates||[]).map((c,k)=>`
+      <div class="cand"><span class="p">${bEsc(c.path)}<br>
+        <span class="hint">${c.installed?'the client is here':(c.ok?'has SWF files, but no index.swf':'nothing here')}</span></span>
+        ${c.ok?`<button class="btn sm ghost" onclick="filesUse(${k})">Use this one</button>`:''}</div>`).join('')
+      ||'<div class="empty">No client folder found on this machine.</div>'}</div>`;
+}
+const gdMsg=(t,good)=>{const n=$('gd-msg');if(n){n.innerHTML=t;
+  n.className='hint'+(good===true?' ok':good===false?' err':'')}};
+function filesUse(k){
+  const c=(FILES&&FILES.candidates||[])[k];
+  if(c&&$('gd-path')) $('gd-path').value=c.path;
+  filesSet();
+}
+async function filesSet(){
+  const p=$('gd-path')?$('gd-path').value.trim():'';
+  gdMsg('Checking…');
+  const {ok,data}=await api('/web/api/admin/game_dir',{method:'POST',body:JSON.stringify({path:p})});
+  if(!ok){ gdMsg(data.error||'Could not use that folder',false); return; }
+  FILES=data; filesRender();
+  gdMsg('Done — the mirror serves the game from there from now on.',true);
+}
+async function filesClear(){
+  const {ok,data}=await api('/web/api/admin/game_dir',{method:'POST',body:JSON.stringify({path:''})});
+  if(!ok){ gdMsg(data.error||'Could not clear it',false); return; }
+  FILES=data; filesRender();
+  gdMsg('Back to automatic detection.',true);
+}
+$('bb-add').onclick=()=>{
+  if(SUB!=='billboard'){ SUB='billboard'; PAGE='settings'; }
+  bbAdd();
+};
+
+/* ── the player card on the home screen ──────────────────────────────────────
+   The same records the card page reads, but one game at a time: the four games
+   are tags, and the block under them is the status of the one you picked.  A
+   game the account has never played says so instead of showing zeros. */
+let HOME_GAME=null;
+
+async function loadCard(){
+  const tabs=$('home-gtabs'), box=$('home-games');
+  if(!ACC){ if(tabs) tabs.innerHTML=''; if(box) box.innerHTML=''; return; }
+  if(box) box.innerHTML='<p class="hint">Reading this account\'s records…</p>';
+  const q=TARGET ? '?email='+encodeURIComponent(TARGET) : '';
+  const {ok,data}=await api('/web/api/games'+q);
+  if(!ok){
+    CARD=null;
+    if(tabs) tabs.innerHTML='';
+    if(box) box.innerHTML=`<p class="hint">${cEsc(data.error||'Could not read the records')}</p>`;
+    return;
+  }
+  CARD=data;
+  renderLook();
+  const games=CARD.games||[];
+  if(!HOME_GAME || !games.some(g=>g.game===HOME_GAME)){
+    const played=games.find(g=>g.stats&&g.stats.length);
+    HOME_GAME=(played||games[0]||{}).game||null;
+  }
+  renderHomeGames();
+  if(PAGE==='board') renderBoard();
+}
+function homeGame(code){ HOME_GAME=code; renderHomeGames(); }
+function renderHomeGames(){
+  const tabs=$('home-gtabs'), box=$('home-games');
+  if(!tabs || !box || !CARD) return;
+  const games=CARD.games||[];
+  tabs.innerHTML=games.map(g=>`<button role="tab" aria-selected="${g.game===HOME_GAME}"
+    class="${g.game===HOME_GAME?'on':''}" onclick="homeGame('${cEsc(g.game)}')">${cEsc(g.game)}</button>`).join('');
+  const g=games.find(x=>x.game===HOME_GAME)||games[0];
+  if(!g){ box.innerHTML=''; return; }
+  box.innerHTML=`
+    <div class="ghead"><b>${cEsc(g.game)} · ${cEsc(g.title)}</b>
+      <span class="pill">${g.stats.length?'played':'not played yet'}</span></div>
+    ${g.stats.length?`<div class="tiles">${g.stats.map(statTile).join('')}</div>`
+      :`<p class="none">Nothing saved for this game yet.</p>`}
+    <p class="hint">${cEsc(g.note)}</p>`;
+}
+function statTile(st){
+  const numeric=/^[0-9][0-9 ,./+-]*$/.test(String(st.value));
+  return `<div class="tile${numeric?'':' texty'}"><b>${cEsc(st.value)}</b>
+    <span>${cEsc(st.label)}</span>${st.hint?`<i>${cEsc(st.hint)}</i>`:''}</div>`;
+}
+
+/* ── the player card ─────────────────────────────────────────────────────────
+   One account's stats and standing in all four games, straight from its own
+   records: profiles for the MMO, `progress` for the mini-games, and the same
+   rank board the games themselves are served.  Fields the account has never
+   written read as "not played yet" rather than as a made-up zero.  The four
+   games themselves now live on the home screen (loadCard), so this page keeps
+   the standings and the character. */
+let CARD=null;
+const cEsc=s=>String(s==null?'':s).replace(/[&<>"]/g,
+  c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  /* ── the leaderboard page: the same board the games keep, for everyone ──
+     Everything here comes from CARD, which the home screen has usually already
+     fetched (loadCard -> /web/api/games), so opening this tab costs no request.
+     A player who never played reads as 0 instead of being left out. */
+async function boardLoad(){
+  const box=$('board-body');
+  if(!box) return;
+  if(!ACC){ box.innerHTML='<p class="hint">Sign in to see the leaderboard.</p>'; return; }
+  if(!CARD){ box.innerHTML='<p class="hint">Reading the records…</p>'; await loadCard(); }
+  if(!CARD){ box.innerHTML='<p class="hint">Could not read the records.</p>'; return; }
+  renderBoard();
+}
+/* the board pages: one per what the games' own boards count - 總成績 (score),
+   收藏榜 (items), 水晶榜 (crystals), 金幣榜 (coins), 迷宮 (maze) - and the score
+   board keeps the game's own 本月/總 (this month / total) split. */
+let BOARD_METRIC='score', BOARD_MONTH=false;
+function renderBoard(){
+  const box=$('board-body'), d=CARD; if(!box||!d) return;
+  const board=d.board||{}, rows=(board.rows||[]).slice(), mine=board.me;
+  const METRICS=[
+    ['score','總成績 Score'],
+    ['items','收藏榜 Items'],
+    ['crystals','水晶榜 Crystals'],
+    ['coins','金幣榜 Coins'],
+    ['maze','迷宮 Maze'],
+  ];
+  const metric = METRICS.some(m=>m[0]===BOARD_METRIC)? BOARD_METRIC:'score';
+  const val = r => { const k = BOARD_MONTH ? metric+'Month' : metric; return r[k]|0; };
+  const sorted = rows.sort((a,b)=>val(b)-val(a));
+  const top = sorted.length? sorted[0] : null;
+  const mineRow = sorted.find(r=>r.me);
+  const mineRank = mineRow? sorted.indexOf(mineRow)+1 : null;
+  const label = (METRICS.find(m=>m[0]===metric)||['','?'])[1].split(' ')[0];
+  box.innerHTML=`
+    <h2>Leaderboard</h2>
+    <p class="hint">${cEsc(board.note||'')}</p>
+    <div class="tabs">${METRICS.map(([k,zh])=>
+      `<button class="tab${k===metric?' on':''}" data-m="${k}">${zh}</button>`).join('')}</div>
+    <div class="tabs">${
+      [['0','總排名 Total'],['1','本月排名 This month']].map(([v,zh])=>
+        `<button class="tab${(BOARD_MONTH? '1':'0')===v?' on':''}" data-mo="${v}">${zh}</button>`).join('')}</div>
+    <div class="chips">
+      ${mineRow?`<span class="chip">your rank <b>#${mineRank} of ${sorted.length}</b></span>
+        <span class="chip">your ${cEsc(label)} <b>${cEsc(String(val(mineRow)))}</b></span>`:''}
+    </div>
+    <div class="board">
+      <div class="brow bhead"><span class="r">#</span><span class="n">Player</span>
+        <span class="nums"><span class="s">${cEsc(label)}</span><span class="c">Coins</span><span class="i">Items</span></span></div>
+      ${sorted.map((r,i)=>`
+        <div class="brow${r.me?' me':''}"><span class="r">#${i+1}</span>
+          <span class="n">${cEsc(r.name)}${r.me?' (this account)':''}${
+            top&&i===0?' <span class="pill amber">top '+cEsc(label.toLowerCase())+'</span>':''
+          }</span>
+          <span class="nums"><span class="s">${cEsc(String(val(r)))}</span><span class="c">${cEsc(String(r.coins))}</span><span class="i">${cEsc(String(r.items))}</span></span>
+        </div>`).join('')||'<div class="brow"><span class="n">No accounts yet.</span></div>'}
+    </div>
+    <p class="hint">Each board has the game's own two views: 總排名 is the all-time standing,
+      本月排名 what the month added (score sums the month's saved points, maze the month's
+      logged floors, and the counts what was gained since the month began). All read from each
+      account's own record, so the board is as fresh as that account's last logout from the game.</p>`;
+  box.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{
+    BOARD_METRIC=b.dataset.m; renderBoard(); });
+  box.querySelectorAll('[data-mo]').forEach(b=>b.onclick=()=>{
+    BOARD_MONTH=b.dataset.mo==='1'; renderBoard(); });
+}
+/* the character: it used to live on the player card, so it moved into Profile
+   instead of disappearing with that page */
+function renderLook(){
+  const box=$('look-body'), d=CARD;
+  if(!box||!d||!d.avatar) return;
+  box.innerHTML=`
+    <h3 class="sh">Character</h3>
+    <p class="hint">${cEsc(d.avatar.note)} This is the same character the game draws in
+      the room. Change the look in the game (更改樣貌) and this page follows on the next login.</p>
+    <details class="hint"><summary>How this is drawn</summary>
+      The parts below are pasted into <code>lib/character_anim.swf</code>'s own clips, at the
+      matrices it places them at, and the picture is rendered from the game's own artwork.</details>
+    <div class="parts">
+      ${(d.avatar.parts||[]).map(x=>`<span class="part${x.mine?' mine':''}"
+        title="${x.mine?'saved on this account':'the default'}"><span class="k">${cEsc(x.part)}</span>
+        <b>${x.value!==''&&x.value!=null?cEsc(x.value):'(none)'}</b></span>`).join('')}
+    </div>${d.avatar_url?`
+    <p class="hint"><img src="${cEsc(d.avatar_url)}" alt="" style="max-width:110px"></p>`:''}`;
+}
+async function cardLoad(){
+  // kept for compatibility: the player card page is gone, its board and character
+  // live in the Leaderboard tab and Profile now
+  if(!$('card-body')) return;
+  const box=$('card-body');
+  if(!ACC){ box.innerHTML=''; return; }
+  if(!CARD){                       // the home screen has usually loaded it already
+    box.innerHTML='<p class="hint">Reading this account\'s records…</p>';
+    await loadCard();
+  }
+  if(!CARD){ box.innerHTML='<h2>Player card</h2><p class="hint">Could not read the records.</p>'; return; }
+  renderCard();
+}
+function renderCard(){
+  const d=CARD, box=$('card-body'); if(!box||!d) return;
+  const initial=(d.name||'?').trim().charAt(0)||'?';
+  const board=d.board||{};
+  const mine=board.me;
+  box.innerHTML=`
+    <div class="pcard-head">
+      <div class="pcard-look">
+        ${d.avatar_url?`<img src="${cEsc(d.avatar_url)}" alt="${cEsc(d.name)}">`
+                      :`<div class="big">${cEsc(initial)}</div>`}
+        <div class="who">${d.avatar.custom?d.avatar.custom+' appearance part(s) saved':'default outfit'}</div>
+      </div>
+      <div class="pcard-who">
+        <h2>${cEsc(d.name)} ${mine?`<span class="pill amber">rank ${mine.rank} of ${mine.of}</span>`:''}</h2>
+        <div class="sub">
+          ${d.login_name?`login name <b>${cEsc(d.login_name)}</b><br>`:''}
+          ${cEsc(d.email||'')}${d.uid?` · uid ${cEsc(d.uid)}`:''}<br>
+          created ${cEsc(d.created||'—')} · last login ${cEsc(d.last_login||'never')}
+        </div>
+      </div>
+    </div>
+    <p class="hint">Your standing across this machine's accounts, read from their own saved
+      records. The four games' status now sits on the home screen.</p>
+    <h3 class="sh">Leaderboard</h3>
+    <p class="hint">${cEsc(board.note||'')}</p>
+    ${mine?`<p class="hint">This account sits at <b>#${mine.rank} of ${mine.of}</b> with a score of ${cEsc(String(mine.score))}.</p>`:''}
+    <div class="board">
+      <div class="brow bhead"><span class="r">#</span><span class="n">Player</span>
+        <span class="nums"><span class="s">Score</span><span class="c">Coins</span><span class="i">Items</span></span></div>
+      ${(board.rows||[]).map(r=>`
+        <div class="brow${r.me?' me':''}"><span class="r">#${r.rank}</span>
+          <span class="n">${cEsc(r.name)}${r.me?' (this account)':''}</span>
+          <span class="nums"><span class="s">${cEsc(String(r.score))}</span><span class="c">${cEsc(String(r.coins))}</span><span class="i">${cEsc(String(r.items))}</span></span>
+        </div>`).join('')||'<div class="brow"><span class="n">No accounts yet.</span></div>'}
+    </div>
+    <h3 class="sh">Character</h3>
+    <p class="hint">${cEsc(d.avatar.note)} This is the same character the game draws in
+      the room. Change the look in the game (更改樣貌) and this page follows on the next login.</p>
+    <details class="hint"><summary>How this is drawn</summary>
+      The parts below are pasted into <code>lib/character_anim.swf</code>'s own clips, at the
+      matrices it places them at; the client reports every part it changes at login, and the
+      picture is rendered here from the game's own exported artwork.</details>
+    <div class="parts">
+      ${d.avatar.parts.map(x=>`<span class="part${x.mine?' mine':''}"
+        title="${x.mine?'saved on this account':'the default'}"><span class="k">${cEsc(x.part)}</span>
+        <b>${x.value!==''&&x.value!=null?cEsc(x.value):'(none)'}</b></span>`).join('')}
+    </div>
+    <div class="actions" style="margin-top:14px">
+      <button class="btn ghost" onclick="cardLoad()">
+        <svg class="i" viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        Refresh</button>
+      <a class="btn ghost" href="/play-flash" target="_blank" rel="noopener">Open the game</a>
+    </div>`;
+}
+
+fillYears($('rg-year'),$('rg-month'),$('rg-day'));
+fillYears($('f-year'),$('f-month'),$('f-day'));
+$('rg-year').value=NOW-18;
+loadMe();
+</script>
+</body>
+</html>
