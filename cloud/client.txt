@@ -1,0 +1,10 @@
+# files that carry the game client: the publisher's build, not the CD's
+# code	file	size	md5
+LP1	index.swf	34745	dbfdc09859d0f86e2938d5f42dedad2e
+LP1	login.swf	68696	e9e1695dcfcd9f05ef18f6ae89326012
+LP1	start.swf	59761	6afc4b89feda34d3ae445dc6362df3d4
+LP2	index.swf	250852	00f24386681ef2a7317d3b26fa5a27b8
+LP2	login.swf	355291	a58f5fc1c7a78a221e06ffd1eef67cc1
+LP2	start.swf	257409	b8ee9a8d31024a0413f06c97eb23eb99
+LP3	index.swf	335377	20dd7a690712cb2e2153babee58ca77e
+LP3	login.swf	536784	1d3a007d3c4f82bf1114c93c7046b246

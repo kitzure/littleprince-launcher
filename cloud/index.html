@@ -1,0 +1,481 @@
+<!doctype html>
+<!--[if IE 7 ]>		 <html class="no-js ie ie7 lte7 lte8 lte9" lang="en-US"> <![endif]-->
+<!--[if IE 8 ]>		 <html class="no-js ie ie8 lte8 lte9" lang="en-US"> <![endif]-->
+<!--[if IE 9 ]>		 <html class="no-js ie ie9 lte9>" lang="en-US"> <![endif]-->
+<!--[if (gt IE 9)|!(IE)]><!--> <html class="no-js" lang="en-US"> <!--<![endif]-->
+<head>
+	<!-- meta -->
+	<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	
+	<link rel="shortcut icon" href="images/favicon.ico">
+	<title>學習平台-星願小王子</title>
+	<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+	<div id="maintable">
+		<div id="content">
+			<!-- <div class="title">網上進入遊戲</div> -->
+			<br/>
+			<br/>
+			<br/>
+			<br/>
+			<div class="title" id="notice">
+				It is suggested that you create an account first &mdash; press
+				<strong>進入帳戶設定</strong> below.<br/>
+				You can still play without creating one.
+			</div>
+			<br/>
+			<div class="row">
+				<div id="p1"><a class="btn" href="/cloud/install?code=LP1">進入遊戲</a></div>
+				<div id="p2"><a class="btn" href="/cloud/install?code=LP2">進入遊戲</a></div>
+				<div id="p3"><a class="btn" href="/cloud/install?code=LP3">進入遊戲</a></div>
+				<div id="p4">
+					<a class="btn" href="/play-flash">進入遊戲</a>
+				</div>
+			</div>
+			<div>
+				<a class="btn" id="dlall" href="#">下載全部遊戲</a>
+				<a class="btn" href="/web#settings">進入帳戶設定</a>
+				<a class="btn" href="https://www.starwish-fair.com">主頁</a>
+			</div>
+			<div class="title" id="dlmsg"></div>
+		</div>
+		<!-- download progress, shown after OK is pressed -->
+		<div id="dlwrap">
+			<div id="dltitle">下載中 &hellip;</div>
+			<div id="dlbar"><div id="dlfill"></div></div>
+		</div>
+		<!-- footer -->
+		<div id="footer">
+			<!-- <div><a href="/littleprince/TermsConditions.php">使用條款</a> -->
+<!-- | -->
+<!-- <a href="/littleprince/PrivacyPolicy.php">私隱政策</a>
+|
+<a href="/littleprince/FAQ.php">常見問題</a>
+|
+<a href="/littleprince/ContactUs.php">聯絡我們</a></div> -->
+			<!-- <div>© 2026 版權所有  星願小王子工作室有限公司</div> -->
+		</div>
+	</div>
+	<style>
+	/* The publisher's myfont.woff holds 45 glyphs - the game's own strings and
+	   nothing else.  This sentence needs 建議先按下面的帳號。不也可以直接玩 as well,
+	   and those are not in it, so asking for DFLiYusn-Bd first rendered the line
+	   in two typefaces at once: 進入戶設定遊 came out of the display face looking
+	   smaller and heavier than the words beside it.  One CJK stack for the whole
+	   line instead, and a soft dark shadow because white on the light sky was
+	   washing out. */
+	#notice {
+		font-family: "Microsoft JhengHei", "Microsoft YaHei", "PingFang TC",
+			"Noto Sans CJK TC", "Noto Sans TC", "WenQuanYi Micro Hei",
+			"Heiti TC", sans-serif;
+		font-size: 21px;
+		line-height: 1.6;
+		text-shadow: 0 1px 2px rgba(8, 24, 60, 0.9), 0 2px 10px rgba(8, 24, 60, 0.55);
+	}
+	/* style.css ends with `* { font-size: 10pt }` (13.3px).  A rule with `*` beats
+	   an inherited size, so the label stayed tiny inside a 21px line no matter what
+	   the parent said - the size has to be set on the element itself. */
+	#notice strong { font-size: inherit; font-weight: 700; padding: 0 3px; }
+	/* Locked cards swap to a pre-greyscaled copy of their art (made with an image
+	   editor, not CSS): the button is a separate element and keeps its colour, so
+	   a locked card never reads as "cannot download".  The frame is baked into
+	   every PNG, so it stays identical on both states.
+	   Paths are relative to the PAGE (`/LP/personal/`), not to css/style.css -
+	   `../images/...` from here resolves to /LP/images/ and 404s, which is what
+	   made every locked card lose its artwork. */
+	#p1.locked { background-image: url("images/dlimg_prince1_gray.png"); }
+	#p2.locked { background-image: url("images/dlimg_prince2_gray.png"); }
+	#p3.locked { background-image: url("images/dlimg_prince3_gray.png"); }
+	#p4.locked { background-image: url("images/dlimg_prince4_gray.png"); }
+	#p1.busy .btn, #p2.busy .btn, #p3.busy .btn { opacity: 0.8; }
+	/* the download progress bar, shown once OK is pressed */
+	#dlwrap {
+		position: fixed; left: 50%; bottom: 22px; margin-left: -215px;
+		width: 430px; max-width: 92%;
+		background: rgba(10,20,42,0.94); color: #fff;
+		border: 1px solid rgba(255,255,255,0.28); border-radius: 8px;
+		padding: 12px 16px; display: none; z-index: 60;
+		font-family: DFLiYusn-Bd, "Microsoft JhengHei", "Microsoft YaHei", "PingFang TC",
+			"Noto Sans CJK TC", "Noto Sans TC", sans-serif;
+	}
+	#dltitle { font-size: 14px; margin-bottom: 8px; }
+	#dlbar { height: 10px; background: rgba(255,255,255,0.18);
+		border-radius: 5px; overflow: hidden; }
+	#dlfill { height: 100%; width: 0%; background: #f0c96a; }
+	/* which build of this page you are looking at - lets a screenshot say so */
+	#ver { position: fixed; right: 8px; bottom: 6px; font-size: 11px;
+		color: rgba(255,255,255,0.45); }
+	</style>
+	<script>
+	// Ask the local server which games are actually on this machine: dim the ones
+	// that are missing, and offer to download one when its 進入遊戲 is pressed.
+	(function () {
+		var cards = { p1: "LP1", p2: "LP2", p3: "LP3", p4: "LPO" };
+		var state = {};
+		var pending = "";
+		var timer = null;
+		var loaded = false;      // has the first real state reply arrived yet?
+		var stateerror = "";
+		var justDone = {};      // code -> when its download finished
+		var wasDown = {};       // code -> was it downloading last time we looked
+		var GRAY_CODES = { LP1: 1, LP2: 1, LP3: 1, LPO: 1 };   // all four grey when missing
+		// the launcher sets the language, and the download page follows it - so do
+		// these labels, taken from the same state reply
+		var LANG = "zh";
+		var STR = {
+			en: { play: "Enter game", need: "Enter game (download first)",
+			      dl_game: "Download game",
+			      dl_all: "Download all games",
+			      dl_all_ask: "Download all %s games?\n\nEach one is large - stay on this page until they finish.",
+			      dl_all_none: "All %s games are already downloaded.",
+			      dl_all_fail: "Could not start the downloads",
+			      refreshing: "Installed - refreshing the game files...",
+			      stale_msg: "the installed client files are an old build - click to repair",
+			      failed: "Download failed - try again", busy: "Downloading ",
+			      loading: "Checking files...", repair: "Repairing the client...",
+			      still: "This game is still downloading",
+			      dl_ask: "Download %s?\n\nThis game is not on your computer " +
+			              "yet.\nDownload it now and start playing",
+			      dl_files: " (%s files, it may take a few minutes)?",
+			      dl_now: " now?", fail_alert: "Download failed ",
+			      left: "files still to download", unpacking: "Unpacking...",
+			      verifying: "Checking files...", dl_head: "Downloading",
+			      fail_head: "Download failed",
+			      stateerr: "Cannot read the game state" },
+			zh: { play: "進入遊戲", need: "進入遊戲（需下載）",
+			      dl_game: "下載遊戲",
+			      dl_all: "下載全部遊戲",
+			      dl_all_ask: "下載全部 %s 個遊戲？\n\n每個遊戲都很大，請留在這個頁面直到完成。",
+			      dl_all_none: "全部 %s 個遊戲都已經下載好了。",
+			      dl_all_fail: "無法開始下載",
+			      refreshing: "安裝完成，正在重新整理遊戲…",
+			      stale_msg: "已安裝的遊戲檔案版本不對，請按一下修復",
+			      failed: "下載失敗，再試一次", busy: "下載中 ",
+			      loading: "檢查檔案中…", repair: "修復中…",
+			      still: "這個遊戲仍在下載中",
+			      dl_ask: "%s 還不在你的電腦上。\n\n現在下載並開始遊玩",
+			      dl_files: "（%s 個檔案，可能需要幾分鐘）",
+			      dl_now: " 嗎？", fail_alert: "下載失敗 ",
+			      left: "個檔案尚未下載", unpacking: "解壓縮中…",
+			      verifying: "檢查檔案中…", dl_head: "下載中",
+			      fail_head: "下載失敗",
+			      stateerr: "讀不到遊戲狀態" }
+		};
+
+		function t(key) { return (STR[LANG] || STR.zh)[key]; }
+
+		// The line at the top of the page is server-rendered HTML, so it does not
+		// follow the launcher's language button by itself.
+		var NOTICE = {
+			en: "It is suggested that you create an account first &mdash; press " +
+			    "<strong>進入帳戶設定</strong> below." +
+			    "<br/>You can still play without creating one.",
+			zh: "建議先按下面的<strong>進入帳戶設定</strong>建立帳號。<br/>" +
+			    "不建立帳號也可以直接遊玩。"
+		};
+
+		function notice() {
+			var el = document.getElementById("notice");
+			if (el) { el.innerHTML = NOTICE[LANG] || NOTICE.zh; }
+		}
+
+		function label(code) {
+			// until the check comes back, saying "download first" on a game that is
+			// already here is simply wrong: say we are still looking
+			if (!loaded) { return t("loading"); }
+			// A long install ends and then the page has to re-read every file before
+			// the card can say Enter game.  That gap looked exactly like nothing
+			// happening, which is the moment a player starts to worry, so name it.
+			if (justDone[code] && (new Date()).getTime() - justDone[code] < 3500) {
+				return t("refreshing");
+			}
+			var one = state[code] || {};
+			if (one.downloading) {
+				// "downloading 100%" while it writes a million files out tells the
+				// player nothing, so name the step being done
+				if (one.phase === "unpack") { return t("unpacking"); }
+				if (one.phase === "verify") { return t("verifying"); }
+				return t("busy") + (one.percent || 0) + "%";
+			}
+			// the CD's client files look installed but ask for a serial, so the game
+			// still needs downloading - it is just a few files, not the whole pack
+			// A greyed card is an offer to download, so say that: 進入遊戲（需下載）
+			// reads like the game is broken rather than simply not here yet.
+			if (one.ready) { return t("play"); }
+			if (one.error) { return t("failed"); }
+			return t("dl_game");
+		}
+
+		// A failed download used to look exactly like nothing happening: the card
+		// went back to 需下載 and the reason was never shown.  Say it out loud.
+		function note() {
+			var el = document.getElementById("dlmsg");
+			var wrap = document.getElementById("dlwrap");
+			var fill = document.getElementById("dlfill");
+			var title = document.getElementById("dltitle");
+			var busy = [], bad = [], pct = 0;
+			for (var id in cards) {
+				var code = cards[id], one = state[code] || {};
+				if (one.downloading) {
+					var shown = (one.percent || 0) + "%";
+					if (one.phase === "unpack") { shown = t("unpacking"); }
+					else if (one.phase === "verify") { shown = t("verifying"); }
+					busy.push(code + " " + shown);
+					if ((one.percent || 0) > pct) { pct = one.percent || 0; }
+				}
+				if (one.error) { bad.push(code + ": " + one.error); }
+			}
+			if (el) {
+				// The bar along the bottom already says what is downloading, unpacking
+				// or stuck, so repeating it up here is just noise.  Only something
+				// the bar cannot show belongs in this line.
+				if (stateerror) {
+					// say so out loud: otherwise "cannot read the state" is
+					// indistinguishable from "nothing is installed"
+					el.innerHTML = t("stateerr") + " &mdash; " + stateerror;
+					el.style.color = "#b03030";
+				} else {
+					el.innerHTML = "";
+				}
+			}
+			if (wrap && fill && title) {
+				if (bad.length) {
+					wrap.style.display = "block";
+					title.innerHTML = t("fail_head") + " &mdash; " + bad.join(" &middot; ");
+					fill.style.background = "#d06a6a";
+					fill.style.width = "100%";
+				} else if (busy.length) {
+					wrap.style.display = "block";
+					title.innerHTML = t("dl_head") + " &mdash; " + busy.join(" &middot; ");
+					fill.style.background = "#f0c96a";
+					fill.style.width = (pct < 1 ? 1 : pct) + "%";
+				} else {
+					wrap.style.display = "none";
+					fill.style.width = "0%";
+				}
+			}
+		}
+
+		function paint() {
+			for (var id in cards) {
+				var box = document.getElementById(id);
+				if (!box) { continue; }
+				var code = cards[id];
+				var one = state[code] || {};
+				if (!loaded) {
+					// nothing is known yet, so do not dress the cards up as ready,
+					// and do not let a click start something it should not
+					box.className = "locked";
+					// Every card greys while nothing is known yet; the buttons stay
+					// coloured so downloading never looks disabled.
+				} else if (one.ready || !GRAY_CODES[code]) { box.className = ""; }
+				else { box.className = one.downloading ? "busy" : "locked"; }
+				var link = box.getElementsByTagName("a")[0];
+				if (link) {
+					link.innerHTML = label(code);
+					if (one.error) { link.title = one.error; }
+					else {
+						// Say what is actually wrong: a wrong-version client looks
+						// identical to a missing one on the card, and hovering used
+						// to show nothing at all in that case.
+						var why = [];
+						if (one.stale && one.stale.length) {
+							why.push(t("stale_msg") + " (" + one.stale.length + ")");
+						}
+						if (one.missing) {
+							why.push(t("left") + ": " + one.missing +
+								((one.names && one.names.length) ? " — " + one.names.join(", ") : ""));
+						}
+						if (why.length) { link.title = why.join(" · "); }
+					}
+					// The link is how a browser without our fetch() gets into a game,
+					// and it was only ever taken away, never put back - so once a
+					// download finished, 進入遊戲 did nothing until the page was
+					// reloaded by hand.
+					if (!loaded || one.downloading) { link.removeAttribute("href"); }
+					else { link.setAttribute("href", "/cloud/install?code=" + code); }
+				}
+			}
+			note();
+			notice();
+		}
+
+		// how many cards the portal actually shows, so no message counts wrongly
+		function countCards() {
+			var n = 0;
+			for (var id in cards) { if (document.getElementById(id)) { n++; } }
+			return n;
+		}
+
+		function anyBusy() {
+			for (var id in cards) {
+				var one = state[cards[id]];
+				if (one && one.downloading) { return true; }
+			}
+			return false;
+		}
+
+		function stopPolling() {
+			if (timer) { clearInterval(timer); timer = null; }
+		}
+
+		function refresh() {
+			// the timestamp defeats any proxy or browser cache: this is live state,
+			// and a cached "not downloaded" is what left the card greyed out
+			fetch("/web/api/cloud_state?t=" + (new Date()).getTime()).then(function (r) {
+				return r.json();
+			}).then(function (data) {
+				var games = (data && data.games) || {};
+				for (var code in games) {
+					state[code] = games[code];
+					// notice the download finishing while we watch: from then on the
+					// card says it is refreshing, not that it still needs downloading
+					if (wasDown[code] && !games[code].downloading && !games[code].error) {
+						justDone[code] = (new Date()).getTime();
+					}
+					wasDown[code] = !!games[code].downloading;
+				}
+				loaded = true;         // the check has answered, however it went
+				// the launcher's language, so the card labels match the rest
+				if (data && data.language) { LANG = data.language; }
+				// a broken state check used to be silent here, which is how a
+				// manifest that could not be read looked exactly like "not installed"
+				stateerror = (data && data.ok === false && data.error) ? String(data.error) : "";
+				paint();
+				wireDownloadAll();     // its label follows the language too
+				if (pending) {
+					var one = state[pending] || {};
+					if (one.ready) {
+						var go = pending;
+						pending = "";
+						stopPolling();
+						location.href = go + "/";
+						return;
+					}
+					if (one.error) {
+						var who = pending, why = one.error;
+						pending = "";
+						stopPolling();
+						alert("下載失敗 " + who + "\n\n" + why);
+						return;
+					}
+				}
+				// keep polling while a download is pending: the worker may not have
+				// flipped its state yet, and stopping here is what made a real
+				// download look like nothing was happening
+				if (anyBusy() || pending) {
+					if (!timer) { timer = setInterval(refresh, 1200); }
+					return;
+				}
+				stopPolling();
+			})["catch"](function () { /* server not up yet - leave the links alone */ });
+		}
+
+		function describe(code) {
+			var names = { LP1: "星願小王子 (LP1)", LP2: "星願外傳 (LP2)", LP3: "星願歷奇 (LP3)" };
+			var one = state[code] || {};
+			var who = names[code] || code;
+			var tail = one.missing ? t("dl_files").replace("%s", one.missing) : "";
+			return t("dl_ask").replace("%s", who) + tail + t("dl_now");
+		}
+
+		for (var id in cards) {
+			var box = document.getElementById(id);
+			if (!box) { continue; }
+			box.addEventListener("click", function (ev) {
+				var code = cards[this.id];
+				var one = state[code] || {};
+				if (!loaded) { ev.preventDefault(); return; }
+				if (one.ready) { return; }                // let the link through
+				if (one.downloading) {
+					alert(t("still") + " (" + (one.percent || 0) + "%).");
+					ev.preventDefault();
+					return;
+				}
+				if (!confirm(describe(code))) { ev.preventDefault(); return; }
+				// Download where the player is already looking: the portal's own bar
+				// shows the progress, so there is no reason to throw them onto the
+				// installer page.  The link still points there, so a browser with no
+				// fetch() - or one that blocks it - follows it and installs anyway.
+				ev.preventDefault();
+				if (!timer) { timer = setInterval(refresh, 1200); }
+				fetch("/web/api/cloud_download", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ code: code })
+				}).then(function (r) {
+					return r.json();
+				}).then(function (data) {
+					if (data && data.ok === false) {
+						alert(t("fail_alert") + code + "\n\n" + (data.error || ""));
+					}
+					refresh();
+				})["catch"](function () {
+					location.href = "/cloud/install?code=" + code;
+				});
+			}, false);
+		}
+
+		// One button for all four cards: the same download each card starts, one game
+		// after another - the online client included.  Anything already here is left
+		// alone, so pressing it again is safe.
+		function wireDownloadAll() {
+			var btn = document.getElementById("dlall");
+			if (!btn) { return; }
+			btn.innerHTML = t("dl_all");
+			btn.onclick = function (ev) {
+				ev.preventDefault();
+				var todo = [];
+				for (var id in cards) {
+					var code = cards[id], one = state[code] || {};
+					if (!loaded || one.downloading || one.ready) { continue; }
+					todo.push(code);
+				}
+				if (!todo.length) {
+					// every card, so the count follows the portal's own card list
+					alert(t("dl_all_none").replace("%s", String(countCards())));
+					return false;
+				}
+				if (!confirm(t("dl_all_ask").replace("%s", String(todo.length)))) { return false; }
+				if (typeof fetch !== "function") {
+					alert(t("dl_all_fail"));      // nothing else can start them from here
+					return false;
+				}
+				if (!timer) { timer = setInterval(refresh, 1200); }
+				fetch("/web/api/cloud_download_all", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: "{}"
+				}).then(function (r) {
+					return r.json();
+				}).then(function (data) {
+					if (data && data.ok === false) {
+						alert(t("dl_all_fail") + "\n\n" + (data.error || ""));
+					}
+					refresh();
+				})["catch"](function () {
+					alert(t("dl_all_fail"));
+				});
+				return false;
+			};
+		}
+		wireDownloadAll();
+		refresh();
+		// A game installed somewhere else - the launcher, another window - left this
+		// page showing a greyed-out card, because nothing asked the server again.
+		// Re-check when the page is looked at again, and quietly in the background.
+		window.addEventListener("focus", function () { refresh(); }, false);
+		document.addEventListener("visibilitychange", function () {
+			if (!document.hidden) { refresh(); }
+		}, false);
+		setInterval(function () { if (!anyBusy()) { refresh(); } }, 5000);
+	})();
+	</script>
+	<div id="ver">portal 6</div>
+</body>
+</html>
+
