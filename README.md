@@ -1,8 +1,9 @@
 ![ai gen banner lol](banner.jpeg)
-<p align="center">ignore that ai gen banner</p>
+<p align="center">ignore that ai gen banner, since the offical DID use ai on these 2 characters</p>
 
 # Little Prince Launcher
 
+https://kitzure.github.io/littleprince-launcher/ <br>
 a launcher for a game created in 2006 which supports as below:
 
 - Little Prince 星願小王子 (LP1)
@@ -12,38 +13,38 @@ a launcher for a game created in 2006 which supports as below:
 
 ## What it does
 
-- Patches each game's licence check so the full version opens without a key.
-- Answers the games' own AMF calls locally (login, save, mail, friends, ranks).
-- Local online play: a lobby, rooms and player lists, on one machine.
-- Friends and mail between local accounts.
-- The castle's notice board (佈告欄), with an editor.
-- Leaderboards, with each title's scores kept apart.
-- Mods presets per title.
-- A local accounts website, plus a launcher window that starts everything.
-
-## How to install
-
-1. Download [the latest launcher ZIP](https://github.com/kitzure/littleprince-launcher/releases/download/release/launcherv1.0.zip).
-2. Unzip it into a new folder and install Python 3 with Tkinter if needed.
-3. Run `Start.bat`.
-4. Choose your game in the launcher; download any missing files when prompted.
+- Unlocks locked minigames to make it playable
+- Full function localstorage to storage your user's data
+- Customizable user settings in the webpage (LPO's billboard)
+- Local Multiplayer function for LPO (some of the minigames)
+- Mod selection for each games
 
 ## Disclaimer
 
-For educational and preservation purposes only. All games, artwork, music,
-characters and code belong to Starwish Little Prince Ltd. / Starwish Fair and
-their developers. Nothing here claims any right over them.
+This is an unofficial project for educational and game preservation purposes.
+It is not affiliated with, endorsed by, or sponsored by Starwish Little Prince
+Ltd., Starwish Fair, or the original developers.
 
-- Own the game first. Patch only a copy you legally own, and keep a backup.
-- Do not sell or bundle this package commercially, and do not use it for piracy.
-  No serial keys or licences are provided here.
-- Support the official release if the company ever makes these games available
-  again. If a rights holder asks, this repository should be removed.
+All original games, game code, artwork, music, characters and trademarks
+remain the property of their respective rights holders. This project claims
+no ownership of those materials. This disclaimer does not grant permission
+to copy or redistribute copyrighted content.
 
-## Credits
+- Use only game copies you legally own. Back up your files before applying
+  any patches.
+- Do not sell or commercially bundle this package, or use it for piracy.
+  No serial keys or game licences are provided.
+- Support official releases whenever they are available.
+- Rights holders can contact the repository maintainer with any concerns.
+  Affected content or the repository will be removed upon a verified
+  rights-holder request.
 
-- **Starwish Little Prince Ltd. / Starwish Fair** (`little-prince.com.hk`,
-  `starwish-fair.com`) - the original publisher and rights holder of the
-  星願小王子 family.
-- **JPEXS Free Flash Decompiler (FFDec)** - used to open, read and patch the SWF
-  clients. https://github.com/jindrapetrik/jpexs-decompiler
+**THIS LAUNCHER IS FREE. DO NOT PAY FOR IT.**
+
+Little Prince Launcher is free to download and use. We do not sell it or
+authorise anyone to sell it on our behalf. Anyone claiming to offer an
+"official paid version" is not associated with this project.
+
+Download it from this repository or the project website.
+This warning applies to the launcher, not to legitimate purchases of
+the original games.
