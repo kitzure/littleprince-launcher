@@ -47,14 +47,41 @@
       flex: 0 1 55%;
       object-fit: contain;
       transform: none;
+      transform-origin: 50% 55%;
+      animation: character-flight 6.8s ease-in-out infinite;
+      will-change: transform;
     }
     .home-page .scene-art .princess {
+      --flight-rest-y: -18px;
+      --flight-rest-angle: -4deg;
+      --flight-x: 8px;
+      --flight-rise: 16px;
+      --flight-tilt: 1.6deg;
+      animation-delay: -1.2s;
       margin-right: -7%;
       transform: translateY(-18px) rotate(-4deg);
       z-index: 2;
     }
     .home-page .scene-art .prince {
+      --flight-rest-y: 20px;
+      --flight-rest-angle: 4deg;
+      --flight-x: -7px;
+      --flight-rise: 19px;
+      --flight-tilt: -1.4deg;
+      animation-duration: 8.2s;
+      animation-delay: -4.3s;
       transform: translateY(20px) rotate(4deg);
+    }
+    @keyframes character-flight {
+      0%, 100% {
+        transform: translate3d(0, var(--flight-rest-y), 0)
+          rotate(var(--flight-rest-angle));
+      }
+      50% {
+        transform: translate3d(var(--flight-x),
+          calc(var(--flight-rest-y) - var(--flight-rise)), 0)
+          rotate(calc(var(--flight-rest-angle) + var(--flight-tilt)));
+      }
     }
     .home-page .home-context {
       width: auto;
@@ -87,8 +114,14 @@
       .home-page .panel-shell { order: -1; }
       .scene-art { max-width: 390px; margin: 0 auto; padding: 14px 6px; }
       .home-page .scene-art .character { width: 52%; max-width: 200px; flex-basis: 52%; }
-      .home-page .scene-art .princess { transform: translateY(-8px) rotate(-4deg); }
-      .home-page .scene-art .prince { transform: translateY(8px) rotate(4deg); }
+      .home-page .scene-art .princess {
+        --flight-rest-y: -8px; --flight-x: 4px; --flight-rise: 10px;
+        transform: translateY(-8px) rotate(-4deg);
+      }
+      .home-page .scene-art .prince {
+        --flight-rest-y: 8px; --flight-x: -4px; --flight-rise: 12px;
+        transform: translateY(8px) rotate(4deg);
+      }
       .home-page .home-context {
         margin-top: 14px;
         text-align: center;
@@ -100,6 +133,9 @@
       .home-page .home-stage { gap: 20px; }
       .home-page .scene-art { max-width: 300px; }
       .home-page .home-context { padding: 10px 12px; font-size: 10px; }
+    }
+    @media (prefers-reduced-motion: reduce), print {
+      .home-page .scene-art .character { animation: none; will-change: auto; }
     }
   </style>
 </head>
