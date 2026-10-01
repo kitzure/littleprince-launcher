@@ -283,6 +283,23 @@ def update(email: str, patch: dict, profile_keys=None) -> dict:
     raise ValueError("no such account")
 
 
+def transaction(email: str, mutate) -> dict:
+    """Read/mutate/atomically replace one account while holding the save lock.
+
+    The callback edits only this freshly read account. Exceptions abort the whole
+    transaction, including private undo metadata, before any file is written.
+    """
+    key = normalize(email)
+    with _LOCK:
+        data = _read()
+        for acct in data["accounts"]:
+            if normalize(acct.get("email")) == key:
+                mutate(acct)
+                _write(data)
+                return acct
+    raise ValueError("no such account")
+
+
 def set_game_result(email: str, game: int, level: int, row: list,
                     board_key: str = "gameResult") -> dict:
     """Record one level's score row on the account.

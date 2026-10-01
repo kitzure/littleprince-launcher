@@ -1,4 +1,4 @@
-LITTLE PRINCE LAUNCHER — WINDOWS v1.0
+LITTLE PRINCE LAUNCHER — WINDOWS v1.0a
 Setup, how it works and support guide
 
 Website: https://kitzure.github.io/littleprince-launcher/
@@ -108,17 +108,17 @@ Report unresolved issues at the repository's Issues page. Remove
 personal details and passwords from log excerpts before posting.
 
 DOWNLOAD AND INTEGRITY
-Version: Windows v1.0
-Filename: launcherv1.0.zip
-Size: 12,406,881 bytes (about 12.4 MB)
+Version: Windows v1.0a
+Filename: littleprince-launcher-v1.0a.zip
+Size: 12,419,299 bytes (about 12.4 MB)
 Primary:
-https://github.com/kitzure/littleprince-launcher/releases/download/release/launcherv1.0.zip
+https://github.com/kitzure/littleprince-launcher/releases/download/v1.0a/littleprince-launcher-v1.0a.zip
 Identical backup:
-https://files.catbox.moe/dhzr91.zip
+https://files.catbox.moe/mqijfv.zip
 SHA-256:
-f10a6ea266dd290fcac9aebb0b73cf5f0a97ecff597ecfd0739a374f7df56365
+f87556d45f101db9c329498af9938092e4f7e14f1798d21090d45c13c5e9f4b7
 PowerShell check:
-Get-FileHash .\launcherv1.0.zip -Algorithm SHA256
+Get-FileHash .\littleprince-launcher-v1.0a.zip -Algorithm SHA256
 
 RIGHTS AND OWNERSHIP
 An unofficial educational/preservation project. Original games,

@@ -14,6 +14,7 @@ the full games run offline, with the local login.
     python fetch_browser.py --local      show the portal URL it will use
 """
 import argparse
+import hashlib
 import os
 import sys
 import urllib.request
@@ -22,12 +23,17 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+from pack_download import PACK_UA, validate_pack_url, _PackRedirectHandler  # noqa: E402
 try:
     from fetch_client import resolve_base                              # noqa: E402
 except Exception:                                                      # noqa: BLE001
     resolve_base = None
 
 BROWSER_URL = "http://www.little-prince.com.hk/littleprince/Download/LittlePrinceBrowserHome.zip"
+BROWSER_SOURCES = (("catbox", "https://files.catbox.moe/0cdlki.zip"),
+                   ("official", BROWSER_URL))
+BROWSER_SIZE = 67022603
+BROWSER_SHA256 = "c006afdde0443435b742e53c345b8f376ee2bf33af41924ec51f71e661e79871"
 PORTAL = "http://www1.little-prince.com.hk/LP/personal/"
 DEFAULT_DIR = HERE.parent / "browser"          # next to the package, deleted from the zip
 EXE = "LittlePrinceBrowserHome.exe"
@@ -171,46 +177,113 @@ def patch(browser_dir: Path, portal: str = None, log=print) -> bool:
     return False
 
 
+def _verified_archive(path: Path) -> bool:
+    """Only the complete, archived publisher build may be extracted."""
+    try:
+        if path.stat().st_size != BROWSER_SIZE:
+            return False
+        digest = hashlib.sha256()
+        with path.open("rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                digest.update(chunk)
+        if digest.hexdigest() != BROWSER_SHA256:
+            return False
+        with zipfile.ZipFile(path) as archive:
+            if archive.testzip() is not None:
+                return False
+            names = set(archive.namelist())
+            required = ("LittlePrinceBrowserHome/" + EXE,
+                        str(MAIN_JS).replace("\\", "/"),
+                        "LittlePrinceBrowserHome/resources/app/Plugins/pepflashplayer.dll")
+            if not all(name in names for name in required):
+                return False
+            for info in archive.infolist():
+                name = info.filename.replace("\\", "/")
+                if name.startswith("/") or ":" in name or ".." in name.split("/"):
+                    return False
+                if (info.external_attr >> 16) & 0o170000 == 0o120000:
+                    return False
+        return True
+    except (OSError, ValueError, zipfile.BadZipFile, RuntimeError):
+        return False
+
+
 def download(dest: Path, log=print, cancel=None) -> bool:
-    """Fetch and unpack the browser into dest."""
+    """Catbox archive first, official fallback; verify bytes before extracting."""
     dest = Path(dest)
     dest.mkdir(parents=True, exist_ok=True)
     zip_path = dest / "LittlePrinceBrowserHome.zip"
-    url = BROWSER_URL
-    host_header = ""
-    if resolve_base:
-        url, host_header = resolve_base(BROWSER_URL, log=log)
-    part = zip_path.with_suffix(".part")
-    have = part.stat().st_size if part.exists() else 0
-    headers = {}
-    if host_header:
-        headers["Host"] = host_header
-    if have:
-        headers["Range"] = "bytes=%d-" % have
-        log("  resuming at %.1f MB" % (have / 1e6))
-    req = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(req, timeout=60) as r, open(part, "ab" if have else "wb") as fh:
-        total = int(r.headers.get("Content-Length", 0)) + have
-        done = have
-        while True:
+    if cancel is not None and cancel.is_set():
+        return False
+    ready = _verified_archive(zip_path)
+    if ready:
+        log("  using the verified cached browser archive")
+    opener = urllib.request.build_opener(_PackRedirectHandler())
+    for label, source in (() if ready else BROWSER_SOURCES):
+        try:
             if cancel is not None and cancel.is_set():
-                log("  cancelled")
                 return False
-            chunk = r.read(1 << 20)
-            if not chunk:
-                break
-            fh.write(chunk)
-            done += len(chunk)
-            if total:
-                log("  %.1f / %.1f MB" % (done / 1e6, total / 1e6))
-    part.replace(zip_path)
-    log("  downloaded %.1f MB" % (zip_path.stat().st_size / 1e6))
-    with zipfile.ZipFile(zip_path) as z:
-        bad = z.testzip()
-        if bad:
-            log("  the zip is damaged at %s" % bad)
-            return False
-        z.extractall(dest)
+            validate_pack_url(source)
+            url, host_header = source, ""
+            # A mirror must never inherit the publisher's hosts override.
+            if label == "official" and resolve_base:
+                url, host_header = resolve_base(source, log=log)
+            part = zip_path.with_name("LittlePrinceBrowserHome.%s.part" % label)
+            have = part.stat().st_size if part.is_file() else 0
+            if have >= BROWSER_SIZE:
+                if _verified_archive(part):
+                    part.replace(zip_path)
+                    ready = True
+                    break
+                part.unlink()
+                have = 0
+            headers = {"User-Agent": PACK_UA}
+            if host_header:
+                headers["Host"] = host_header
+            if have:
+                headers["Range"] = "bytes=%d-" % have
+            log("  downloading browser from %s: %s" % (label, source))
+            req = urllib.request.Request(validate_pack_url(url), headers=headers)
+            with opener.open(req, timeout=90) as response:
+                status = response.getcode()
+                if status == 206:
+                    content_range = response.headers.get("Content-Range", "")
+                    if not (content_range.startswith("bytes %d-" % have)
+                            and content_range.endswith("/%d" % BROWSER_SIZE)):
+                        part.unlink(missing_ok=True)
+                        raise ValueError("incorrect partial browser response")
+                    mode = "ab" if have else "wb"
+                elif status == 200:
+                    # A host may ignore Range: never append its complete ZIP.
+                    have = 0
+                    mode = "wb"
+                else:
+                    raise ValueError("unexpected browser HTTP status %s" % status)
+                done = have
+                with part.open(mode) as fh:
+                    while True:
+                        if cancel is not None and cancel.is_set():
+                            log("  cancelled")
+                            return False
+                        chunk = response.read(1 << 20)
+                        if not chunk:
+                            break
+                        fh.write(chunk)
+                        done += len(chunk)
+                        log("  %.1f / %.1f MB" % (done / 1e6, BROWSER_SIZE / 1e6))
+            if not _verified_archive(part):
+                part.unlink(missing_ok=True)
+                raise ValueError("browser archive size, SHA-256 or ZIP check failed")
+            part.replace(zip_path)
+            ready = True
+            log("  verified browser archive from %s" % label)
+            break
+        except Exception as exc:
+            log("  browser source %s failed: %s" % (label, exc))
+    if not ready:
+        return False
+    with zipfile.ZipFile(zip_path) as archive:
+        archive.extractall(dest)
     log("  extracted into %s" % dest)
     patch(dest, log=log)
     return True

@@ -29,6 +29,7 @@ launcher can install it while this server keeps running, so the look is repeated
 and the picture comes back without a restart.
 """
 import hashlib
+import importlib
 import json
 import os
 import sys
@@ -53,9 +54,11 @@ KEEP = 40                                   # how many rendered looks to keep on
 # The one dependency, and the exact way to install it.  The wording matters: the
 # page used to say only "Pillow is not installed", which tells the reader what is
 # wrong and not what to type, and the failure is silent everywhere else.
-PILLOW_HINT = "python3 -m pip install --user Pillow"
+PILLOW_HINT = ("Launcher menu > Install avatar support" if os.name == "nt"
+               else "python3 -m pip install --user Pillow")
 
 _lock = threading.Lock()
+_cache_lock = threading.Lock()  # /me, /games and live polling can render together
 _rig = None
 _rig_tried = False
 _rig_at = 0.0                 # when the dataset was last looked at
@@ -88,6 +91,10 @@ def _pil_image():
     control.  It never raises: the caller has a documented answer for "no".
     """
     global _last_error, _pillow_missing
+    local = Path(__file__).resolve().parent / "python-deps"
+    if local.is_dir() and str(local) not in sys.path:
+        sys.path.insert(0, str(local))
+        importlib.invalidate_caches()
     try:
         from PIL import Image
     except Exception as e:                      # Pillow is what does the pasting
@@ -365,6 +372,13 @@ HEAD_SCALE = 4.0     # a head crop is shown large, so render it large and crop h
 
 def ensure(parts: dict, view: str = "full"):
     """(url, path) for this look's PNG, rendering it once. (None, None) if it cannot."""
+    # One cache writer prevents concurrent requests renaming the same .part file.
+    # Keep this separate from the rig/render lock, which render() itself takes.
+    with _cache_lock:
+        return _ensure_cached(parts, view)
+
+
+def _ensure_cached(parts: dict, view: str = "full"):
     rig = _load_rig()
     if not rig:
         return None, None

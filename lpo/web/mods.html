@@ -143,6 +143,19 @@
     </div>
 
     <div id="body" class="hide">
+      <div class="card" id="undo-card">
+        <h3>Account-wide mods</h3>
+        <p class="sub" id="undo-status"></p>
+        <div class="kbar">
+          <button id="revert-all">Revert all mods</button>
+          <button id="reset-legacy">Reset old mods to defaults...</button>
+        </div>
+        <p class="hint">Applies to LP1, LP2, LP3 and LPO together. Close the games before reverting,
+          then sign in again. Only touched fields and score boards are restored; later progress
+          on those same fields is replaced. Identity, password and unrelated saves stay intact.</p>
+        <div id="undo-msg" role="status" class="muted"></div>
+      </div>
+
       <h2 id="p-title"></h2>
       <p class="sub" id="p-sub"></p>
 
@@ -473,6 +486,13 @@ function renderAll() {
 
 function render() {
   $('body').classList.remove('hide');
+  const undo = state.undo || {};
+  const backed = undo.backed_up_fields || 0, legacy = undo.legacy_fields || 0;
+  $('undo-status').textContent = backed + ' backed-up fields across this account.' +
+    (legacy ? ' ' + legacy + ' old mod fields have no backup; previous values cannot be recovered.' :
+      ' New preset and editor changes are backed up on their first write.') +
+    ' Old manual mods cannot be detected reliably. Use the separate defaults reset only if needed.';
+  $('revert-all').disabled = !undo.can_restore;
   renderRail();
   const g = GAMES.concat([ALL]).find(x => x.code === selected);
   $('p-title').textContent = g.code === 'ALL' ? 'Whole record' : g.code + ' — ' + g.zh;
@@ -532,6 +552,37 @@ function load(email) {
     });
 }
 
+function revertAll(resetUntracked) {
+  if (!state) return;
+  const undo = state.undo || {};
+  const legacy = resetUntracked || (undo.legacy_fields || 0) > 0;
+  const description = 'Account: ' + state.email + '\nAll four games. Close every game first.\n' +
+    'Restore ' + (undo.backed_up_fields || 0) + ' backed-up fields to their pre-mod values. ' +
+    'Later progress on these same fields will be replaced. Unrelated saves, identity and password stay.\n' +
+    (legacy ? '\nWARNING: Previous values for old mods are unavailable and CANNOT be recovered. ' +
+      (resetUntracked ? 'Reset ALL mod-managed gameplay fields without backups to normal defaults, ' :
+        'Reset the recognised old mod fields to normal defaults, ') +
+      'including affected items/stats/scores. This can discard legitimate progress in those fields.\n' : '') +
+    '\nContinue?';
+  if (!window.confirm(description)) return;
+  if (legacy && window.prompt('To consent to using defaults (NOT recovered values), type RESET DEFAULTS:') !== 'RESET DEFAULTS') return;
+  const accountEmail = state.email;
+  $('revert-all').disabled = true;
+  $('reset-legacy').disabled = true;
+  post('/web/api/mods', {email: accountEmail, action: 'revert',
+       legacy_defaults: legacy, reset_untracked: !!resetUntracked}).then(r => {
+    if (!r.ok) { show(r.body.error || ('HTTP ' + r.status), 'err', $('undo-msg')); return; }
+    show('Restored ' + (r.body.restored || []).length + ' fields.' +
+         (legacy ? ' Old mod fields used defaults, not recovered values.' : '') +
+         ' Sign in to the games again.', 'ok', $('undo-msg'));
+    return load(accountEmail);
+  }).catch(e => show(String(e), 'err', $('undo-msg'))).finally(() => {
+    $('reset-legacy').disabled = false;
+    $('revert-all').disabled = !(state.undo || {}).can_restore;
+  });
+}
+$('revert-all').onclick = () => revertAll(false);
+$('reset-legacy').onclick = () => revertAll(true);
 $('account').onchange = e => load(e.target.value);
 $('refresh').onclick = () => load(state ? state.email : '');
 $('f-go').onclick = () => {

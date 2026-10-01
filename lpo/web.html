@@ -132,8 +132,8 @@
      whole body was shrunk into the circle and the face was a smudge. */
   .pavatar-ring{width:84px;height:84px;flex:0 0 84px;border-radius:50%;overflow:hidden;
     border:2px solid var(--amber-line);background:#ffffff}
-  .pavatar-ring .pavatar{width:100%;height:100%;display:block;object-fit:cover;
-    object-position:50% 6%}
+  .pavatar-ring .pavatar{width:100%;height:100%;display:block;object-fit:contain;
+    object-position:center}
   /* the games strip: LP1 / LP2 / LP3 / LPO, one game's status at a time */
   .gtabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0}
   .gtabs button{background:#ffffff;border:1px solid var(--line);color:var(--dim);
@@ -782,8 +782,12 @@
   input[type=checkbox]:checked{background:#2196c9;border-color:#2196c9}
   input[type=checkbox]:checked::after{background:#ffffff;border-radius:2px}
   input[type=checkbox]:hover{border-color:var(--gold-2)}
+  /* The background shorthand above resets the arrow sizing and placement. */
   select{background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),
-                       linear-gradient(135deg,var(--dim) 50%,transparent 50%)}
+                       linear-gradient(135deg,var(--dim) 50%,transparent 50%);
+         background-position:calc(100% - 17px) 52%,calc(100% - 12px) 52%;
+         background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:34px}
+  select option{background:var(--field);color:var(--txt)}
   .chk{color:var(--txt)}
 
   /* ── buttons: gold for the one action that matters, parchment for the rest ── */
@@ -832,7 +836,7 @@
   #tab-login .grid label,#tab-register .grid label{color:#111111}
   #tab-login .grid input,#tab-register .grid input,#tab-register .grid select,
   #tab-login .grid select,#tab-register .grid textarea{
-    background:#ffffff;border-color:#a9d3ea;color:#111111}
+    background-color:#ffffff;border-color:#a9d3ea;color:#111111}
   /* the sign-in sheet carries the publisher's own card art, the way their portal
      puts it beside the entry form */
   #tab-login{min-height:260px}
@@ -948,6 +952,12 @@
 
   /* CJK that the game itself supplies (a player name, a title) must not be handed
      to Nunito - it has no CJK glyphs at all; the stack in --font covers it. */
+  /* Responsive geometry must follow the theme's desktop frame overrides. */
+  @media(max-width:820px){
+    main{grid-template-columns:minmax(0,1fr);padding:12px 12px 92px}
+    .rail{position:static;max-height:none;overflow:visible}
+    .savebar{left:0;right:0}
+  }
 </style>
 </head>
 <body>
@@ -1201,9 +1211,6 @@
       <div class="field"><label for="f-class_no">Class no.</label><input id="f-class_no"></div>
     </div>
     <div id="f-msg"></div>
-    <!-- the outfit the game will draw for this player, rendered from the game's
-         own artwork (it moved here from the player card) -->
-    <div id="look-body"></div>
   </section>
 
   <!-- ── account ────────────────────────────────────────────────────── -->
@@ -1466,6 +1473,7 @@ async function signOut(){
   await api('/web/api/logout',{method:'POST',body:'{}'});
   ACC=null;TARGET=null;SUB="home";
   adminClear();
+  if($('home-avatar'))$('home-avatar').src='/web/avatars/default.png';
   if($('home-hello'))$('home-hello').textContent='Welcome';
   /* these two carry the previous account's details, so clear them on sign-out
      (the guard used to test an id that does not exist, so they survived it) */
@@ -1529,7 +1537,37 @@ function fill(){
   $('tab-panel').classList.remove('hide');
   document.querySelector('#tabs [data-tab="panel"]').classList.remove('hide');
   renderWorlds();loadList();renderNavigation();
+  syncAvatar();
 }
+/* Follow the game's saved equipment while this page stays open. Do NOT call
+   fill()/loadMe(): they replace the player's unsaved settings and navigation. */
+let avatarSyncBusy=false;
+async function syncAvatar(){
+  if(!ACC || document.hidden || avatarSyncBusy) return;
+  const account=ACC, target=TARGET, email=account.email;
+  avatarSyncBusy=true;
+  try{
+    const q=target ? '?email='+encodeURIComponent(target) : '';
+    const {ok,data}=await api('/web/api/avatar'+q);
+    if(!ok || ACC!==account || TARGET!==target || data.email!==email ||
+       String(data.uid)!==String(account.uid)) return;
+    const head=data.avatar_head_url||data.avatar_url||'/web/avatars/default.png';
+    const av=$('home-avatar');
+    if(av && av.getAttribute('src')!==head) av.src=head;
+    ACC.avatar_url=data.avatar_url;
+    ACC.avatar_head_url=data.avatar_head_url;
+    Object.assign(ACC.profile||(ACC.profile={}),data.appearance||{});
+    if(CARD && CARD.email===email && (CARD.avatar_url!==data.avatar_url ||
+       JSON.stringify(CARD.avatar)!==JSON.stringify(data.avatar))){
+      CARD.avatar_url=data.avatar_url;CARD.avatar=data.avatar;
+      if($('card-body')) renderCard();
+    }
+  }catch(e){ /* A stopped/restarting server keeps the last valid portrait. */ }
+  finally{avatarSyncBusy=false;}
+}
+setInterval(syncAvatar,2000);
+window.addEventListener('focus',syncAvatar);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncAvatar()});
 async function saveAccount(){
   const profile={permission:PERM,birth:getDob(),
                  unlockLevels:($('f-unlock_lv')&&$('f-unlock_lv').checked)?'1':'0',
@@ -1669,7 +1707,7 @@ function adminLoad(){ bbLoad(); filesLoad(); }
 function cardClear(){ CARD=null;
   // the leaderboard and the character both read CARD, so blank them on sign-out
   // instead of leaving the previous account's numbers on screen
-  ['card-body','board-body','look-body'].forEach(id=>{ const b=$(id); if(b) b.innerHTML=''; }); }
+  ['card-body','board-body'].forEach(id=>{ const b=$(id); if(b) b.innerHTML=''; }); }
 function adminClear(){
   cardClear();
   BOARD=[];BINFO={};BSEL=null;FILES=null;
@@ -3151,9 +3189,11 @@ let HOME_GAME=null;
 async function loadCard(){
   const tabs=$('home-gtabs'), box=$('home-games');
   if(!ACC){ if(tabs) tabs.innerHTML=''; if(box) box.innerHTML=''; return; }
+  const account=ACC, target=TARGET;
   if(box) box.innerHTML='<p class="hint">Reading this account\'s records…</p>';
   const q=TARGET ? '?email='+encodeURIComponent(TARGET) : '';
   const {ok,data}=await api('/web/api/games'+q);
+  if(ACC!==account || TARGET!==target) return;
   if(!ok){
     CARD=null;
     if(tabs) tabs.innerHTML='';
@@ -3161,7 +3201,6 @@ async function loadCard(){
     return;
   }
   CARD=data;
-  renderLook();
   const games=CARD.games||[];
   if(!HOME_GAME || !games.some(g=>g.game===HOME_GAME)){
     const played=games.find(g=>g.stats&&g.stats.length);
@@ -3268,25 +3307,6 @@ function renderBoard(){
   box.querySelectorAll('[data-mo]').forEach(b=>b.onclick=()=>{
     BOARD_MONTH=b.dataset.mo==='1'; renderBoard(); });
 }
-/* the character: it used to live on the player card, so it moved into Profile
-   instead of disappearing with that page */
-function renderLook(){
-  const box=$('look-body'), d=CARD;
-  if(!box||!d||!d.avatar) return;
-  box.innerHTML=`
-    <h3 class="sh">Character</h3>
-    <p class="hint">${cEsc(d.avatar.note)} This is the same character the game draws in
-      the room. Change the look in the game (更改樣貌) and this page follows on the next login.</p>
-    <details class="hint"><summary>How this is drawn</summary>
-      The parts below are pasted into <code>lib/character_anim.swf</code>'s own clips, at the
-      matrices it places them at, and the picture is rendered from the game's own artwork.</details>
-    <div class="parts">
-      ${(d.avatar.parts||[]).map(x=>`<span class="part${x.mine?' mine':''}"
-        title="${x.mine?'saved on this account':'the default'}"><span class="k">${cEsc(x.part)}</span>
-        <b>${x.value!==''&&x.value!=null?cEsc(x.value):'(none)'}</b></span>`).join('')}
-    </div>${d.avatar_url?`
-    <p class="hint"><img src="${cEsc(d.avatar_url)}" alt="" style="max-width:110px"></p>`:''}`;
-}
 async function cardLoad(){
   // kept for compatibility: the player card page is gone, its board and character
   // live in the Leaderboard tab and Profile now
@@ -3334,18 +3354,6 @@ function renderCard(){
           <span class="n">${cEsc(r.name)}${r.me?' (this account)':''}</span>
           <span class="nums"><span class="s">${cEsc(String(r.score))}</span><span class="c">${cEsc(String(r.coins))}</span><span class="i">${cEsc(String(r.items))}</span></span>
         </div>`).join('')||'<div class="brow"><span class="n">No accounts yet.</span></div>'}
-    </div>
-    <h3 class="sh">Character</h3>
-    <p class="hint">${cEsc(d.avatar.note)} This is the same character the game draws in
-      the room. Change the look in the game (更改樣貌) and this page follows on the next login.</p>
-    <details class="hint"><summary>How this is drawn</summary>
-      The parts below are pasted into <code>lib/character_anim.swf</code>'s own clips, at the
-      matrices it places them at; the client reports every part it changes at login, and the
-      picture is rendered here from the game's own exported artwork.</details>
-    <div class="parts">
-      ${d.avatar.parts.map(x=>`<span class="part${x.mine?' mine':''}"
-        title="${x.mine?'saved on this account':'the default'}"><span class="k">${cEsc(x.part)}</span>
-        <b>${x.value!==''&&x.value!=null?cEsc(x.value):'(none)'}</b></span>`).join('')}
     </div>
     <div class="actions" style="margin-top:14px">
       <button class="btn ghost" onclick="cardLoad()">

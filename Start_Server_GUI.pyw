@@ -43,6 +43,7 @@ if HERE not in sys.path:
 import fake_server as srv          # the server itself (same folder)
 import launcher_ui                 # the window both platforms draw  (same folder)
 from lpo.pack_download import clean_download_settings, validate_pack_url, open_pack
+from lpo import avatar_support
 
 APP_TITLE = "Little Prince Launcher — server"
 VERSION = "1.1"
@@ -661,6 +662,8 @@ class WindowsBackend:
         self.online_srv = Online(port=online_port) if online else None
         self.relay_srv = Relay(port=8443) if online else None
         self.ui = None
+        self._avatar_setup_asked = False
+        self._avatar_setup_busy = False
         self._mp_value = "—"           # the multiplayer row only speaks when it runs
         self._verify = {"at": 0.0, "ready": {}, "note": "", "busy": False}
         self._settings_file = os.path.join(HERE, "lpo", "download-settings.json")
@@ -696,6 +699,10 @@ class WindowsBackend:
                 self.online_srv._handler = lambda m: ui.say(m)
                 ui.note("online server started on port %d (%d game files)"
                         % (self.online_srv.port, self.online_srv.swfs))
+                if os.name == "nt" and not self._avatar_setup_asked:
+                    self._avatar_setup_asked = True
+                    if not avatar_support.pillow_ready():
+                        ui.root.after(250, self.install_avatar_support)
             else:
                 ui.note("online server did NOT start: %s" % self.online_srv.last_error)
         # LAN multiplayer relay: auto-start with the server so two machines in
@@ -847,6 +854,8 @@ class WindowsBackend:
         sections.append((tr("sec_user"), [
             (tr("user_site"), self.open_website, True),
             (tr("user_billboard"), self.open_billboard, True),
+            ("Install avatar support", self.install_avatar_support,
+             not self._avatar_setup_busy),
             (tr("user_folder"), lambda: self.open_folder(os.path.join(HERE, "lpo")),
              True),
             (tr("user_profile"),
@@ -860,6 +869,30 @@ class WindowsBackend:
             (tr("logs_open"), self.open_log, True),
         ]))
         return sections
+
+    def install_avatar_support(self):
+        """One consented local install, with progress in the existing GUI log."""
+        if self._avatar_setup_busy:
+            return
+        if avatar_support.pillow_ready():
+            self.ui.note("Avatar support is already installed.")
+            return
+        if not _messagebox().askyesno(
+                "Avatar support",
+                "Website portraits need Pillow, which is not installed.\n\n"
+                "Download it into this launcher folder now?\n"
+                "This does not change your system Python packages.\n\n"
+                "The games work even if you choose No.", parent=self.ui.root):
+            self.ui.note("Avatar support setup skipped. Retry from the launcher menu.")
+            return
+        self._avatar_setup_busy = True
+        self.ui.note("Downloading avatar support. See the launcher log for progress.")
+        def worker():
+            try:
+                avatar_support.install_pillow(self.ui.say)
+            finally:
+                self._avatar_setup_busy = False
+        threading.Thread(target=worker, daemon=True).start()
 
     def open_accounts(self):
         """The accounts page - what the user badge in the title strip opens."""

@@ -1,10 +1,10 @@
 {
-  "version": "v1.0",
+  "version": "v1.0a",
   "platform": "Windows",
-  "filename": "launcherv1.0.zip",
-  "url": "https://github.com/kitzure/littleprince-launcher/releases/download/release/launcherv1.0.zip",
-  "backup_url": "https://files.catbox.moe/dhzr91.zip",
-  "size_bytes": 12406881,
-  "sha256": "f10a6ea266dd290fcac9aebb0b73cf5f0a97ecff597ecfd0739a374f7df56365",
-  "release_page": "https://github.com/kitzure/littleprince-launcher/releases/tag/release"
+  "filename": "littleprince-launcher-v1.0a.zip",
+  "url": "https://github.com/kitzure/littleprince-launcher/releases/download/v1.0a/littleprince-launcher-v1.0a.zip",
+  "backup_url": "https://files.catbox.moe/mqijfv.zip",
+  "size_bytes": 12419299,
+  "sha256": "f87556d45f101db9c329498af9938092e4f7e14f1798d21090d45c13c5e9f4b7",
+  "release_page": "https://github.com/kitzure/littleprince-launcher/releases/tag/v1.0a"
 }

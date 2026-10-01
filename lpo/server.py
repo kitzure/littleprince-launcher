@@ -926,6 +926,8 @@ DEFAULT_PROFILE = {
     # and unlimitedUse keeps the equipped weapons topped up (left_total/right_total).
     "items": "",
     "unlimitedUse": "0",
+    "unlimitedWardrobe": "0",
+    "closetLv": "2",
     "coins": "100",
     "totalItems": "0",
     "totalCrystals": "0",
@@ -1159,6 +1161,13 @@ def apply_profile(body: bytes, profile: dict = None):
             if new != value:
                 changed = True
                 value = new
+        # RemoteService reads top-level closetLv; Closet uses it for BOTH the
+        # page arrow limit and storageSize = closetLv * 9 (not a cosmetic label).
+        if isinstance(value, dict) and "closetLv" in value:
+            capacity = lpo_closet_pages(prof, value["closetLv"])
+            if value["closetLv"] != capacity:
+                value["closetLv"] = capacity
+                changed = True
         # Every level of every game: the client needs a record row per level or
         # only level 1 is playable (see game_record_rows above).
         if isinstance(value, dict) and "gameRecords" in value:
@@ -1254,7 +1263,7 @@ def login_credentials(raw_body: bytes):
 PLAYER_FIELDS = {
     "coins", "totalitems", "totalcrystals", "crystal0", "crystal1", "crystal2",
     "crystal3", "crystal4", "mazerec", "eventdata", "left_total", "right_total",
-    "score", "high", "gamelv", "weapon", "name", "sex", "birth",
+    "score", "high", "gamelv", "weapon", "name", "sex", "birth", "addclosetlv",
 }
 NUMERIC_FIELDS = {"coins", "totalitems", "totalcrystals", "crystal0", "crystal1",
                   "crystal2", "crystal3", "crystal4", "left_total", "right_total",
@@ -1272,7 +1281,14 @@ def _collect_pairs(value, out, depth=0):
         # nothing the online client saved used to reach the player record.
         t, d = value.get("type"), value.get("data")
         if isinstance(t, str) and isinstance(d, (str, int, float, bool)):
-            out.setdefault(str(t).strip().lower(), d)
+            field = str(t).strip().lower()
+            if field in MMO_CHAR_PARTS:
+                # RemoteService queues changes in order. If the player equips
+                # and removes the same part before send(), the LAST change wins,
+                # including an empty string (taking a hat/accessory off).
+                out[field] = d
+            else:
+                out.setdefault(field, d)
         for k, v in value.items():
             key = str(k).strip().lower()
             if isinstance(v, (str, int, float, bool)):
@@ -1365,6 +1381,10 @@ def persist_player_update(raw_body: bytes, service: str = "") -> bool:
         rows = lpo_profile_items(owner_prof) or []
         names = [r[1] for r in rows]
         touched = False
+        if "addclosetlv" in update:
+            update.pop("addclosetlv")
+            update["closetLv"] = str(lpo_closet_pages(
+                dict(owner_prof, unlimitedWardrobe="0")) + 1)
         add = update.pop("additem", None)
         if isinstance(add, str) and add and add not in names and add not in LPO_SPORTSWEAR:
             rows.append([1, add])
@@ -3012,6 +3032,21 @@ def player_card_avatar(prof: dict) -> dict:
     }
 
 
+def avatar_payload(acct: dict) -> dict:
+    """Appearance only, read from the saved account, never CURRENT_PLAYER.
+
+    Polling this must not replace unsaved profile forms or disclose password,
+    progress or private undo data. All 16 parts use the game's login ordering.
+    """
+    prof = acct.get("profile") or {}
+    full, _ = avatar_ensure(prof)
+    head, _ = avatar_ensure(prof, "head")
+    return {"email": acct.get("email"), "uid": str(acct.get("uid") or ""),
+            "avatar_url": full, "avatar_head_url": head,
+            "appearance": dict(zip(MMO_CHAR_PARTS, cloth_parts(prof))),
+            "avatar": player_card_avatar(prof)}
+
+
 def player_card_payload(email: str) -> dict:
     """Everything the profile page shows for one account."""
     acct = accounts.get(email) if email else None
@@ -3066,8 +3101,21 @@ def cloth_parts(prof: dict) -> list:
 
 
 LPO_ITEM_CACHE = None
+LPO_ITEM_CACHE_SIGNATURE = None
 LPO_UNLIMITED_USES = "999999"          # the floor the mod keeps the weapons at
 LPO_SPORTSWEAR = ("運動服", "運動褲", "運動鞋")   # addItem() refuses these
+
+
+def _lpo_settings_signature():
+    """Invalidate cached absence/content when installation or client folder changes."""
+    signature = []
+    for candidate in (GAME_DIR / "settings.cxd", GAME_DIR / "game/settings.cxd"):
+        try:
+            st = candidate.stat()
+            signature.append((str(candidate.resolve()), st.st_size, st.st_mtime_ns))
+        except OSError:
+            signature.append((str(candidate), None, None))
+    return tuple(signature)
 
 
 def lpo_item_catalogue() -> list:
@@ -3075,10 +3123,12 @@ def lpo_item_catalogue() -> list:
 
     That file is what the client's searchItemType/searchItemData read, so the list
     cannot drift from the game: hat/cloth/shoes/trousers/weapons/items and the
-    appearance parts.  Cached - the file never changes while the server runs.
+    appearance parts. Cache is keyed by file location, size and modification time;
+    opening Mods before installation must not cache "not installed" forever.
     """
-    global LPO_ITEM_CACHE
-    if LPO_ITEM_CACHE is not None:
+    global LPO_ITEM_CACHE, LPO_ITEM_CACHE_SIGNATURE
+    signature = _lpo_settings_signature()
+    if LPO_ITEM_CACHE is not None and signature == LPO_ITEM_CACHE_SIGNATURE:
         return LPO_ITEM_CACHE
     ids = []
     import re as _re
@@ -3099,19 +3149,53 @@ def lpo_item_catalogue() -> list:
         except Exception as exc:                                      # noqa: BLE001
             log.warning("  could not read the item catalogue from %s: %s" % (candidate, exc))
     LPO_ITEM_CACHE = ids
+    LPO_ITEM_CACHE_SIGNATURE = signature
     return ids
 
 
 LPO_ALL_ITEMS_CACHE = None
+LPO_ALL_ITEMS_CACHE_SIGNATURE = None
 
 
 def lpo_all_item_rows() -> list:
-    """The whole wardrobe as reply rows: [[1, name], ...]."""
-    global LPO_ALL_ITEMS_CACHE
-    if LPO_ALL_ITEMS_CACHE is None:
-        LPO_ALL_ITEMS_CACHE = [[1, name] for name in lpo_item_catalogue()
-                               if name not in LPO_SPORTSWEAR]
+    """All obtainable catalogue entries in their native inventory containers."""
+    global LPO_ALL_ITEMS_CACHE, LPO_ALL_ITEMS_CACHE_SIGNATURE
+    signature = _lpo_settings_signature()
+    if LPO_ALL_ITEMS_CACHE is None or signature != LPO_ALL_ITEMS_CACHE_SIGNATURE:
+        LPO_ALL_ITEMS_CACHE = json.loads(lpo_items_json(lpo_item_catalogue()))
+        LPO_ALL_ITEMS_CACHE_SIGNATURE = signature
     return LPO_ALL_ITEMS_CACHE
+
+
+LPO_ITEM_TYPES_CACHE = None
+LPO_ITEM_TYPES_CACHE_SIGNATURE = None
+
+
+def lpo_item_types() -> dict:
+    """Read the client's category and native stack size; never infer it from an ID."""
+    global LPO_ITEM_TYPES_CACHE, LPO_ITEM_TYPES_CACHE_SIGNATURE
+    signature = _lpo_settings_signature()
+    if LPO_ITEM_TYPES_CACHE is None or signature != LPO_ITEM_TYPES_CACHE_SIGNATURE:
+        import xml.etree.ElementTree as ET
+        import zlib
+        result = {}
+        for candidate in (GAME_DIR / "settings.cxd", GAME_DIR / "game/settings.cxd"):
+            if not candidate.is_file():
+                continue
+            try:
+                root = ET.fromstring(zlib.decompress(candidate.read_bytes()))
+                for group in root.findall("./items/type"):
+                    for item in group.findall("item"):
+                        name = item.get("id")
+                        if name:
+                            result[name] = (group.get("name"),
+                                            max(1, int(item.get("quantity", "1"))))
+                break
+            except (OSError, ValueError, ET.ParseError, zlib.error) as exc:
+                log.warning("could not read LPO item categories: %s", exc)
+        LPO_ITEM_TYPES_CACHE = result
+        LPO_ITEM_TYPES_CACHE_SIGNATURE = signature
+    return LPO_ITEM_TYPES_CACHE
 
 
 def lpo_profile_items(prof: dict):
@@ -3133,22 +3217,58 @@ def lpo_profile_items(prof: dict):
     if not isinstance(raw, (list, tuple)):
         return None
     rows = []
+    types = lpo_item_types()
     for row in raw:
         if not isinstance(row, (list, tuple)) or len(row) < 2:
             continue
         if isinstance(row[1], str) and row[1] in LPO_SPORTSWEAR:
             continue
-        out = [int(row[0]), str(row[1])]
+        try:
+            out = [int(row[0]), str(row[1])]
+        except (TypeError, ValueError):
+            continue
         if len(row) >= 4:
             out += [int(row[2]), int(row[3])]
+        # Repair old grants in the login view, preserving the rollback snapshot.
+        category, quantity = types.get(out[1], (None, 1))
+        if out[0] == 1 and category in ("item", "weapon"):
+            kind = 2 if category == "item" else 3
+            pos = 0
+            occupied = {r[2] for r in rows if r[0] == kind and len(r) >= 4}
+            while pos in occupied:
+                pos += 1
+            out = [kind, out[1], pos, quantity]
         rows.append(out)
     return rows
 
 
+def lpo_closet_pages(prof, fallback=2):
+    try:
+        pages = max(2, int(float(prof.get("closetLv", fallback))))
+    except (ValueError, TypeError):
+        pages = 2
+    # Ownership alone never enables capacity; these are separate mods.
+    if str(prof.get("unlimitedWardrobe", "0")) == "1":
+        count = sum(r[0] == 1 for r in lpo_profile_items(prof) or [])
+        pages = max(pages, 99, (count + 8) // 9)
+    return pages
+
+
 def lpo_items_json(names) -> str:
-    """[[1, name], ...] -> the JSON string the profile stores."""
-    import json as _json
-    return _json.dumps([[1, n] for n in names], ensure_ascii=False)
+    """Clothing/styles -> wardrobe; potions -> bag; weapons -> weapon storage."""
+    rows, positions = [], {2: 0, 3: 0}
+    types = lpo_item_types()
+    for name in dict.fromkeys(names):
+        if name in LPO_SPORTSWEAR:
+            continue
+        category, quantity = types.get(name, (None, 1))
+        if category in ("item", "weapon"):
+            kind = 2 if category == "item" else 3
+            rows.append([kind, name, positions[kind], quantity])
+            positions[kind] += 1
+        else:
+            rows.append([1, name])
+    return json.dumps(rows, ensure_ascii=False)
 
 
 def known_players() -> list:
@@ -4662,11 +4782,19 @@ MODS_PRESETS = (
     },
     {
         "id": "lpo_items", "game": "LPO",
-        "label": "Every item obtained",
-        "detail": "the whole wardrobe - every item in the client's own settings.cxd, "
-                  "weapons and consumables included - written to the player record's "
-                  "`items`, which the login reply hands to the client's own parser",
+        "label": "Obtain all items",
+        "detail": "all obtainable items from settings.cxd. Clothes and appearance "
+                  "styles go to the wardrobe, weapons to weapon storage, potions "
+                  "to the bag. Preserves existing items; does not expand the wardrobe. "
+                  "Apply Unlimited wardrobe pages separately to browse everything",
         "profile": {"items": lambda: lpo_items_json(lpo_item_catalogue())},
+    },
+    {
+        "id": "lpo_wardrobe", "game": "LPO",
+        "label": "Unlimited wardrobe pages",
+        "detail": "at least 99 free wardrobe pages, growing with inventory if needed. "
+                  "Does not grant items or change your paid expansion level",
+        "profile": {"unlimitedWardrobe": "1"},
     },
     {
         "id": "lpo_unlimited", "game": "LPO",
@@ -4878,100 +5006,279 @@ def mods_preset(preset_id: str):
     return None
 
 
+# Undo is private account metadata, never a player-record/progress field.
+MODS_UNDO_KEY = "_mods_undo"
+MODS_FLAGS = (("profile", "unlimitedUse"), ("profile", "unlimitedWardrobe"), ("profile", "unlockLevels"),
+              ("progress", "lp2unlimited"), ("progress", "lp3unlimited"),
+              ("progress", "unlocklevels"))
+
+
+def _mods_store(acct, store):
+    return acct if store == "account" else acct.get(store, {})
+
+
+def _mods_capture(acct, undo, store, key):
+    token = store + ":" + key
+    if token not in undo["before"] and token not in undo["legacy"]:
+        src = _mods_store(acct, store)
+        undo["before"][token] = {"exists": key in src,
+                                  "value": src.get(key)}
+
+
+def _mods_tokens(acct, store, key):
+    # Remove case aliases on write and restore their exact spelling on undo.
+    return {key} | {k for k in _mods_store(acct, store) if k.lower() == key.lower()}
+
+
+def _mods_legacy(acct):
+    """Recognisable old presets only; earlier manual edits cannot be identified."""
+    found = set()
+    for preset in MODS_PRESETS:
+        parts = []
+        for store in ("profile", "progress"):
+            for key, value in (preset.get(store) or {}).items():
+                src = _mods_store(acct, store)
+                aliases = [k for k in src if k.lower() == key.lower()]
+                expected = value() if callable(value) else value
+                if key == "items" and store == "profile":
+                    names = {r[1] for r in lpo_profile_items(src) or []} | set(cloth_parts(src))
+                    catalogue = set(lpo_item_catalogue()) - set(LPO_SPORTSWEAR)
+                    matches = bool(catalogue) and catalogue <= names
+                else:
+                    matches = any(str(src[k]) == str(expected) for k in aliases)
+                if preset["id"] == "lpo_items" and key == "closetLv" and not matches:
+                    # The old preset had no capacity field at all.
+                    parts.append((True, []))
+                else:
+                    parts.append((matches, [store + ":" + k for k in aliases]))
+        spec = preset.get("game_result")
+        if spec:
+            key = spec.get("board", "gameResult")
+            board = acct.get(key)
+            expected = spec.get("scores") or [[int(spec.get("high", 0))] * n
+                                              for n in LP1_LEVELS]
+            try:
+                matches = all(int(board[g][lv][2]) == int(score)
+                              for g, row in enumerate(expected)
+                              for lv, score in enumerate(row))
+            except (TypeError, ValueError, IndexError, KeyError):
+                matches = False
+            parts.append((matches, ["account:" + key]))
+        if parts and all(match for match, _ in parts):
+            for _, tokens in parts:
+                found.update(tokens)
+    for store, key in MODS_FLAGS:
+        src = _mods_store(acct, store)
+        found.update(store + ":" + k for k in src
+                     if k.lower() == key.lower() and str(src[k]) == "1")
+    return sorted(found)
+
+
+def mods_status(acct):
+    undo = acct.get(MODS_UNDO_KEY) or {}
+    before = undo.get("before", {})
+    legacy = set(undo.get("legacy", _mods_legacy(acct)))
+    # A flag enabled outside this panel after the snapshot still has no backup.
+    for store, key in MODS_FLAGS:
+        src = _mods_store(acct, store)
+        legacy.update(store + ":" + k for k in src
+                      if k.lower() == key.lower() and str(src[k]) == "1"
+                      and store + ":" + k not in before)
+    return {"backed_up_fields": len(before), "legacy_fields": len(legacy),
+            "can_restore": bool(before or legacy),
+            "warning": "Old mods have no backup. Previous values cannot be recovered. "
+                       "A legacy reset uses normal defaults for mod-managed gameplay fields only."}
+
+
 def apply_mods(email: str, preset_id: str = "", fields=None):
-    """Write a preset (or plain field values) into one account's saved progress.
-
-    `profile` presets go through the account's player record instead - coins and
-    crystals are profile fields, not progress ones.
-
-    Returns (account, written): `written` is exactly what was stored, so the caller
-    can report what happened rather than assume the write landed.
-    """
-    if not isinstance(fields, dict):
-        fields = {}
-    written = {}
+    """Apply the whole batch and first-touch snapshots in ONE locked transaction."""
     preset = mods_preset(preset_id) if preset_id else None
-    if preset:
-        fields = dict(preset.get("progress") or {})
-    for key, value in (fields or {}).items():
-        key = str(key).strip()
-        if not key:
-            continue
-        # set_progress keeps the value verbatim: a number typed into the field
-        # editor would reach the client as 999.0 where it expects "999", and the
-        # client's comma-split would then see a single slot.
+    if preset_id and not preset:
+        raise ValueError("unknown preset %r" % preset_id)
+    if preset_id == "lpo_items" and not lpo_item_catalogue():
+        raise ValueError("install the LPO client before applying the every-items preset")
+    fields = dict(preset.get("progress") or {}) if preset else (fields or {})
+    if not isinstance(fields, dict):
+        raise ValueError("fields must be an object")
+    # Only the documented editor fields are writable, never identity/private keys.
+    allowed = {n.lower() for _, _, rows in MODS_FIELDS for n, _, _ in rows}
+    allowed |= {"score", "gems", "stars"}
+    if not preset and any(str(k).strip().lower() not in allowed for k in fields):
+        raise ValueError("unknown or protected mod field")
+    profile_names = {k.lower(): k for k in DEFAULT_PROFILE}
+    changes, written = [], {}
+    for key, value in fields.items():
+        key = str(key).strip().lower()
         text = value() if callable(value) else value
         text = text if isinstance(text, str) else str(text)
-        # The three titles' 積分 are one concept to the person using the panel but
-        # three separate stores (SCORE_KEYS), so a typed "score" writes all three -
-        # the same number everywhere, which is what the panel means by it - while
-        # each title still reads only its own key from then on.
-        if key.lower() == "score":
-            for gkey in SCORE_KEYS.values():
-                accounts.set_progress(email, gkey, text)
-                written[gkey] = text
-            continue
-        # Where the value belongs depends on the field: coins and the crystals are
-        # player-record (profile) fields, everything else is saved progress.  The
-        # panel used to send every typed field to `progress`, so an LPO field typed
-        # by hand landed where nothing reads it.
-        if key.lower() in {k.lower() for k in DEFAULT_PROFILE} and \
-                key.lower() not in PROGRESS_FIELDS:
-            accounts.update(email, {key: text})
-        else:
-            accounts.set_progress(email, key, text)
-        written[key] = text
-    if preset and preset.get("profile"):
-        profile_fields = {k: (v() if callable(v) else v)
-                          for k, v in preset["profile"].items()}
-        accounts.update(email, profile_fields)
-        written.update(profile_fields)
-    if preset and preset.get("game_result"):
-        # LP1's report panel and its rank row are fed from the account's
-        # gameResult, not from `progress`: the row is the six values the client
-        # sends with setScore (initS, initD, highS, highD, recentS, recentD).
-        spec = preset["game_result"]
-        board_key = str(spec.get("board") or "gameResult")
-        game = int(spec.get("game") or 0)
-        high = int(spec.get("high") or 0)
-        today = time.strftime("%Y%m%d")
-        levels = int(spec.get("levels") or 0)
-        if spec.get("scores"):
-            # One row per level with that level's own threshold as the high score - the
-            # client unlocks level N only when level N-1 reached its maxscore.
+        keys = list(SCORE_KEYS.values()) if key == "score" else [key]
+        for name in keys:
+            store = ("profile" if name in profile_names and name not in PROGRESS_FIELDS
+                     else "progress")
+            name = profile_names[name] if store == "profile" else name.lower()
+            changes.append((store, name, text))
+            written[name] = text
+    if preset:
+        for key, value in (preset.get("profile") or {}).items():
+            text = value() if callable(value) else value
+            changes.append(("profile", key, str(text)))
+            written[key] = str(text)
+    spec = (preset or {}).get("game_result")
+    if not changes and not spec:
+        return accounts.get(email) or {}, {}
+
+    def mutate(acct):
+        undo = acct.get(MODS_UNDO_KEY)
+        if not undo:
+            undo = {"version": 1, "before": {}, "legacy": _mods_legacy(acct),
+                    "containers": {k: k in acct for k in ("profile", "progress")}}
+            acct[MODS_UNDO_KEY] = undo
+        if preset_id == "lpo_items":
+            undo.setdefault("equipped", {k: (acct.get("profile") or {}).get(k)
+                                        for k in DEFAULT_PROFILE if k in
+                                        ("hat", "left_acc", "right_acc", "left_item", "right_item",
+                                         "cloth", "trousers", "shoes", "tail")})
+        for store, key, text in changes:
+            for alias in _mods_tokens(acct, store, key):
+                _mods_capture(acct, undo, store, alias)
+            src = acct.setdefault(store, {})
+            old_rows = (lpo_profile_items(src) or []) if store == "profile" and key == "items" else []
+
+            for alias in list(src):
+                if alias.lower() == key.lower():
+                    src.pop(alias)
+            # Every-items is additive for existing/custom inventory, never wipes it.
+            if preset_id == "lpo_items" and key == "items":
+                rows = json.loads(text)
+                undo.setdefault("wardrobe_granted", [r[1] for r in rows])
+                old_names = {r[1] for r in old_rows}
+                occupied = {kind: {r[2] for r in old_rows
+                                  if r[0] == kind and len(r) >= 4}
+                            for kind in (2, 3)}
+                new_rows = []
+                for row in rows:
+                    if row[1] in old_names:
+                        continue
+                    if row[0] in occupied:
+                        while row[2] in occupied[row[0]]:
+                            row[2] += 1
+                        occupied[row[0]].add(row[2])
+                    new_rows.append(row)
+                rows = old_rows + new_rows
+                text = json.dumps(rows, ensure_ascii=False)
+            src[key] = text
+        if spec:
+            from copy import deepcopy
+            key = str(spec.get("board") or "gameResult")
+            _mods_capture(acct, undo, "account", key)
+            board = deepcopy(acct.get(key)) if isinstance(acct.get(key), list) else []
+            scores = spec.get("scores") or [[int(spec.get("high", 0))] * int(n)
+                                           for n in (spec.get("table") or LP1_LEVELS)]
+            today = time.strftime("%Y%m%d")
             count = 0
-            for gid, row in enumerate(spec["scores"]):
+            for gid, row in enumerate(scores):
+                while len(board) <= gid:
+                    board.append([])
                 for level, sc in enumerate(row):
-                    accounts.set_game_result(email, gid, level,
-                                             [0, "", int(sc), today, int(sc), today],
-                                             board_key)
+                    while len(board[gid]) <= level:
+                        board[gid].append(blank_row())
+                    board[gid][level] = [0, "", int(sc), today, int(sc), today]
                     count += 1
-            written[board_key] = "%d rows at each level's maxscore" % count
-        elif spec.get("all_games"):
-            # Every game's every level.  The first version wrote one game's rows, so
-            # "Every level cleared" unlocked nothing past the first game.
-            table = spec.get("table") or LP1_LEVELS
-            count = 0
-            for gid, nlevels in enumerate(table):
-                for level in range(int(nlevels)):
-                    accounts.set_game_result(email, gid, level,
-                                             [0, "", high, today, high, today],
-                                             board_key)
-                    count += 1
-            written[board_key] = "%d rows at %d (all %d games)" % (count, high,
-                                                                   len(table))
-        else:
-            for level in range(levels):
-                accounts.set_game_result(email, game, level,
-                                         [0, "", high, today, high, today],
-                                         board_key)
-            written[board_key] = "%d rows at %d" % (levels, high)
-    if written:
-        log.info("  mods: wrote %s for %s"
-                 % (", ".join(sorted(written)), email))
-    else:
-        log.warning("  mods: nothing written for %s (preset=%r)" % (email, preset_id))
-    return accounts.get(email) or {}, written
+            acct[key] = board
+            written[key] = "%d score rows" % count
+    acct = accounts.transaction(email, mutate)
+    return acct, written
+
+
+def _mods_default(store, key):
+    if store == "profile":
+        return "[]" if key.lower() == "items" else DEFAULT_PROFILE.get(key, "0")
+    # Absence makes each game's existing login builder use its own normal default.
+    return None
+
+
+def _mods_fix_equipped(acct, old_items, equipped=None):
+    prof = acct.get("profile") or {}
+    rows = lpo_profile_items(prof)
+    owned = {r[1] for r in rows or []} | set(LPO_SPORTSWEAR)
+    owned.update(v for v in (equipped or {}).values() if v)
+    removed = {r[1] for r in old_items or []} - owned
+    for key in ("hat", "left_acc", "right_acc", "left_item", "right_item",
+                "cloth", "trousers", "shoes", "tail"):
+        if prof.get(key) in removed:
+            prof[key] = DEFAULT_PROFILE.get(key, "")
+            if key in ("left_item", "right_item"):
+                prof[key.split("_")[0] + "_total"] = "0"
+
+
+def revert_mods(email: str, legacy_defaults: bool = False, reset_untracked: bool = False):
+    """Restore sparse backups, or explicitly consented legacy gameplay defaults."""
+    restored = []
+    def mutate(acct):
+        undo = acct.get(MODS_UNDO_KEY) or {"before": {}, "legacy": _mods_legacy(acct)}
+        legacy = set(undo.get("legacy", []))
+        before = undo.get("before", {})
+        for store, key in MODS_FLAGS:
+            src = _mods_store(acct, store)
+            legacy.update(store + ":" + k for k in src
+                          if k.lower() == key.lower() and str(src[k]) == "1"
+                          and store + ":" + k not in before)
+        if reset_untracked:
+            # Explicit fallback for old manual edits: NOT preferences or identity.
+            for preset in MODS_PRESETS:
+                for store in ("profile", "progress"):
+                    for key in (preset.get(store) or {}):
+                        for alias in _mods_tokens(acct, store, key):
+                            if alias in _mods_store(acct, store):
+                                legacy.add(store + ":" + alias)
+                spec = preset.get("game_result")
+                if spec and spec.get("board", "gameResult") in acct:
+                    legacy.add("account:" + spec.get("board", "gameResult"))
+            # Manual gameplay fields named by the editor, excluding settings.
+            preferences = {"quality", "musicvolume", "winmode", "language", "firsthint", "extra"}
+            for _, _, rows in MODS_FIELDS:
+                for key, store, _ in rows:
+                    if key.lower() not in preferences:
+                        legacy.update(store + ":" + alias for alias in _mods_tokens(acct, store, key)
+                                      if alias in _mods_store(acct, store))
+        legacy -= set(before)
+        if legacy and not legacy_defaults:
+            raise ValueError("legacy defaults require explicit consent; previous values are unavailable")
+        old_items = lpo_profile_items(acct.get("profile") or {})
+        items_touched = any(t.lower() == "profile:items" for t in set(before) | legacy)
+        for token, saved in before.items():
+            store, key = token.split(":", 1)
+            src = acct if store == "account" else acct.setdefault(store, {})
+            if saved["exists"]:
+                src[key] = saved["value"]
+            else:
+                src.pop(key, None)
+            restored.append(token)
+        for token in sorted(legacy):
+            store, key = token.split(":", 1)
+            src = acct if store == "account" else acct.setdefault(store, {})
+            value = _mods_default(store, key)
+            if value is None:
+                src.pop(key, None)
+            else:
+                src[key] = value
+            restored.append(token)
+        # Flags are mod-specific; never leave a save-time floor/unlock enabled.
+        for store, key in MODS_FLAGS:
+            src = acct.get(store, {})
+            if str(src.get(key, "0")) == "1":
+                src.pop(key, None)
+                restored.append(store + ":" + key)
+        if items_touched:
+            candidates = (old_items or []) + [[1, n] for n in undo.get("wardrobe_granted", lpo_item_catalogue())]
+            _mods_fix_equipped(acct, candidates, undo.get("equipped"))
+        for store, existed in undo.get("containers", {}).items():
+            if not existed and acct.get(store) == {}:
+                acct.pop(store, None)
+        acct.pop(MODS_UNDO_KEY, None)
+    acct = accounts.transaction(email, mutate)
+    return acct, sorted(set(restored))
+
 
 
 def cloud_login_reply(raw_body: bytes, target: str = "") -> bytes:
@@ -6656,8 +6963,21 @@ class LittlePrinceHandler(http.server.BaseHTTPRequestHandler):
                         self.send_json({"error": "sign in first"}, status=401)
                     else:
                         target = accounts.normalize(data.get("email") or session)
+                        if target != accounts.normalize(session):
+                            self.send_json({"error": "only your signed-in account can be modified"}, status=403)
+                            return
                         if not accounts.get(target):
                             raise ValueError("no account %s" % target)
+                        action = data.get("action", "apply")
+                        if action == "revert":
+                            acct, restored = revert_mods(target,
+                                legacy_defaults=data.get("legacy_defaults") is True,
+                                reset_untracked=data.get("reset_untracked") is True)
+                            self.send_json({"ok": True, "email": target, "restored": restored,
+                                            "undo": mods_status(acct)})
+                            return
+                        if action != "apply":
+                            raise ValueError("unknown mod action")
                         acct, written = apply_mods(target, data.get("preset") or "",
                                                    data.get("fields"))
                         if not written:
@@ -6974,6 +7294,21 @@ class LittlePrinceHandler(http.server.BaseHTTPRequestHandler):
                 self.send_json({"account": payload,
                                 "worlds": world_states(acct.get("profile", {}).get("permission", 0))})
             return
+        if clean_path.rstrip("/") == "/web/api/avatar":
+            email = _session_email(self)
+            if not email or not accounts.get(email):
+                self.send_json({"error": "not signed in"}, status=401)
+                return
+            # The account editor already allows signed-in local account views.
+            # Match that exact target, rather than the last game login's player.
+            query = parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
+            want = (query.get("email") or [email])[0]
+            acct = accounts.get(want)
+            if not acct:
+                self.send_json({"error": "account not found"}, status=404)
+            else:
+                self.send_json(avatar_payload(acct))
+            return
         if clean_path.rstrip("/") == "/web/api/recent":
             email = _session_email(self)
             acct = accounts.get(email) if email else None
@@ -7017,6 +7352,9 @@ class LittlePrinceHandler(http.server.BaseHTTPRequestHandler):
                 return
             want = (parse_qs(path.split("?", 1)[1] if "?" in path else "").get("email")
                     or [email])[0]
+            if accounts.normalize(want) != accounts.normalize(email):
+                self.send_json({"error": "only your signed-in account can be viewed"}, status=403)
+                return
             acct = accounts.get(want)
             if not acct:
                 self.send_json({"error": "no account %s" % want}, status=404)
@@ -7027,6 +7365,7 @@ class LittlePrinceHandler(http.server.BaseHTTPRequestHandler):
                 "login_name": acct.get("login_name") or "",
                 "name": prof.get("name", ""),
                 "progress": accounts.get_progress(acct),
+                "undo": mods_status(acct),
                 "profile": {k: prof.get(k, "") for k in
                             ("coins", "totalItems", "totalCrystals", "crystal0", "crystal1",
                              "crystal2", "crystal3", "crystal4", "eventData")},
@@ -7037,7 +7376,7 @@ class LittlePrinceHandler(http.server.BaseHTTPRequestHandler):
                             for p in MODS_PRESETS],
                 "accounts": [{"email": a.get("email"), "login_name": a.get("login_name") or "",
                               "name": (a.get("profile") or {}).get("name", "")}
-                             for a in accounts.all_accounts()],
+                             for a in [acct]],
                 "known_fields": [{"game": g, "title": title,
                                   "fields": [{"name": n, "store": s, "note": note}
                                              for (n, s, note) in fs]}
