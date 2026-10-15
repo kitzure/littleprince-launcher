@@ -10,6 +10,10 @@ a launcher for a game created in 2006 which supports as below:
 - Starwish Legend 星願外傳 (LP2)
 - Prince Adventure 星願歷奇 (LP3)
 - Little Prince Online 星願小王子 Online (LPO)
+- 星願思語 · 星空聯盟 (LP4) - the publisher's web build, played in the launcher's portal
+- 星夜重圓 Starwish Reunion (LP5) - the Android app, run in a local Android emulator
+  that the launcher sets up; a patched APK for Android 10+ phones is on the
+  [website](https://kitzure.github.io/littleprince-launcher/guide.html#android)
 
 ## What it does
 
