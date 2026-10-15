@@ -29,6 +29,9 @@ import subprocess
 import amf0      # local module: minimal AMF0 codec (amf0.py)
 import accounts  # local module: player accounts (accounts.json)
 import avatar    # local module: draws the player's character
+import lp4       # local module: 星願思語 (LP4) - its pages, files and phpServices
+import lp5       # local module: 星夜重圓 (LP5) - the Android app's php/Ajax and bundles
+import lp5_android  # local module: 星夜重圓's emulator, downloads and APK build
 from pack_download import DOWNLOAD_METHODS, clean_download_settings, open_pack, validate_pack_url
 
 # ─── Configuration ───────────────────────────────────────────────────────────
@@ -1836,7 +1839,7 @@ def cloud_download_worker(code):
 # else on the screen is noise.  One line, one thin bar that moves by itself, in the
 # game's own colour (the publisher gives each one a button colour; these are those,
 # lifted enough to read on a dark screen).
-LAUNCH_ACCENT = {"LP1": "#4aa3e0", "LP2": "#c8579a", "LP3": "#8cc44f"}
+LAUNCH_ACCENT = {"LP1": "#4aa3e0", "LP2": "#c8579a", "LP3": "#8cc44f", "LP4": "#e0a83c"}
 
 LAUNCH_PAGE = """<!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8">
@@ -1869,13 +1872,19 @@ CLOUD_NAMES = {
     "LP2": "星願外傳 (LP2)",
     "LP3": "星願歷奇 (LP3)",
     "LPO": "星願小王子 ONLINE",
+    "LP4": "星願思語 (LP4)",
 }
 
 # Where a card goes once its game is installed.  The mirrored games have their own
 # page in the portal; the online client is played through the real-Flash page,
-# which falls back to the Ruffle one for browsers without Flash.
+# which falls back to the Ruffle one for browsers without Flash.  星願思語 lives on
+# its own site (horoscope.little-prince.com.hk = www1.../lp4/), so it keeps that path.
 def launch_url(code):
-    return "/play-flash" if code == "LPO" else "/LP/personal/%s/" % code
+    if code == "LPO":
+        return "/play-flash"
+    if code == "LP4":
+        return "/lp4/games/"
+    return "/LP/personal/%s/" % code
 
 # The installer page.  Plain HTML, no script at all: an old browser only has to
 # handle a meta refresh and some CSS.  @@tokens@@ are filled in per request.
@@ -2138,6 +2147,88 @@ def start_lpo_download():
     return {"ok": True, "started": True, "state": dict(state)}
 
 
+def start_lp4_download():
+    """Install 星願思語 (LP4) into <package>/lp4/, for the portal's fifth card.
+
+    A pack URL from the download settings goes first (a zip laid out as lp4/...,
+    unpacked into the package like the other games' packs); whatever is still
+    missing then comes straight from the publisher, file by file - fetch_lp4.py,
+    the same route as running it by hand.  No mirror is built in: the publisher
+    still serves every file, and LP4 is ~220 MB, over Catbox's limit.
+    """
+    code = "LP4"
+    with CLOUD_LOCK:
+        live = CLOUD_DOWNLOADS.get(code)
+        if live and live.get("state") == "downloading":
+            return {"ok": True, "started": False, "state": dict(live)}
+        state = {"state": "downloading", "done": 0, "total": 0, "error": "",
+                 "phase": "download"}
+        CLOUD_DOWNLOADS[code] = state
+
+    def worker():
+        import tempfile
+        import zipfile
+        import fetch_lp4
+        package = Path(__file__).resolve().parent.parent
+        for url in pack_sources(code):
+            try:
+                log.info("lp4: fetching the pack from %s" % url.split("/")[2])
+                with open_pack(url, timeout=120) as r:
+                    with CLOUD_LOCK:
+                        state["total"] = int(r.headers.get("Content-Length") or 0)
+                    with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
+                        tmp_name = tmp.name
+                        while True:
+                            chunk = r.read(262144)
+                            if not chunk:
+                                break
+                            tmp.write(chunk)
+                            with CLOUD_LOCK:
+                                state["done"] += len(chunk)
+                with CLOUD_LOCK:
+                    state["phase"] = "unpack"
+                with zipfile.ZipFile(tmp_name) as zf:
+                    # only the game's own folder - a pack cannot write anywhere else
+                    names = [n for n in zf.namelist()
+                             if n.startswith("lp4/") and ".." not in n]
+                    zf.extractall(str(package), members=names)
+                os.unlink(tmp_name)
+                log.info("lp4: pack unpacked (%d files)" % len(names))
+                break
+            except Exception as exc:                                  # noqa: BLE001
+                log.info("lp4: that pack failed (%s)" % str(exc)[:120])
+        with CLOUD_LOCK:
+            state["phase"] = "files"
+            state["done"], state["total"] = 0, 0
+
+        def progress(done, total):
+            with CLOUD_LOCK:
+                state["done"], state["total"] = done, total
+
+        try:
+            log.info("lp4: fetching what is missing from the publisher")
+            ok, failed = fetch_lp4.fetch(lp4.ROOT, log=lambda m: log.info("  " + m),
+                                         progress=progress)
+            left = lp4.state()
+            with CLOUD_LOCK:
+                state["state"] = "ready" if left["ready"] else "error"
+                state["error"] = "" if left["ready"] else (
+                    "%d file(s) did not arrive: %s" % (left["missing"],
+                                                       ", ".join(left["names"])))
+            log.info("lp4: %d fetched, %d failed - %s" % (
+                ok, len(failed), "installed" if left["ready"] else state["error"]))
+            for rel, why in failed[:10]:
+                log.info("  lp4 missed %s (%s)" % (rel, why))
+        except Exception as exc:                                      # noqa: BLE001
+            with CLOUD_LOCK:
+                state["state"] = "error"
+                state["error"] = str(exc)[:160]
+            log.error("lp4: the download failed: %s" % exc)
+
+    threading.Thread(target=worker, daemon=True).start()
+    return {"ok": True, "started": True, "state": dict(state)}
+
+
 def start_cloud_game(code):
     """Start the right kind of download for one game.
 
@@ -2153,6 +2244,12 @@ def start_cloud_game(code):
         if lpo_client_state()["ready"]:
             return {"ok": True, "started": False, "state": {"ready": True}}
         return start_lpo_download()
+    if code == "LP4":
+        # its own site and its own file list, so its own fetch - a complete copy is
+        # left alone like the others
+        if lp4.state()["ready"]:
+            return {"ok": True, "started": False, "state": {"ready": True}}
+        return start_lp4_download()
     info = cloud_state_reply(fresh=True)["games"].get(code, {})
     if info.get("ready"):
         # already here: downloading the pack again over a good install would only
@@ -2360,10 +2457,32 @@ def cloud_state_reply(fresh=False):
                     "names": [] if lpo["ready"] else lpo["missing_names"],
                     "downloading": False, "percent": 0, "error": "", "stale": [],
                     "phase": "", "swfs": lpo["swfs"]}
+    # 星夜重圓 is the sixth card: an Android app, so "installed" means the emulator,
+    # the game files and the local APK are all here (lp5_android.py)
+    try:
+        five = lp5_android.state(PORT, probe=False)
+        job = five["job"]
+        games["LP5"] = {"ready": five["ready"], "missing": len(five["missing"]),
+                        "names": five["missing"][:4], "stale": [],
+                        "downloading": job["state"] == "working",
+                        "percent": job["percent"] if job["state"] == "working" else 0,
+                        "phase": job["phase"] if job["state"] == "working" else "",
+                        "error": job["error"] if job["state"] == "error" else "",
+                        "android": True, "licences": five["parts"]["licences"],
+                        "running": five["running"]}
+    except Exception as exc:                                          # noqa: BLE001
+        games["LP5"] = {"ready": False, "missing": 1, "names": [], "stale": [],
+                        "downloading": False, "percent": 0, "phase": "",
+                        "error": str(exc)[:120], "android": True}
+    # 星願思語 is the fifth card: its own site, checked against its own file list
+    four = lp4.state()
+    games["LP4"] = {"ready": four["ready"], "missing": four["missing"],
+                    "names": four["names"], "downloading": False, "percent": 0,
+                    "error": four.get("error", ""), "stale": [], "phase": ""}
     try:
         found = disk_state(fresh=fresh)
         for code, state in games.items():
-            if code == "LPO":
+            if code in ("LPO", "LP4", "LP5"):
                 # the online client is not one of the mirrored games: its readiness
                 # comes from the client check above, not from the mirror's file walk
                 continue
@@ -4356,6 +4475,13 @@ def resolve_login_account(typed: str):
         if want == addr.split("@", 1)[0] or (pname and want == pname):
             hits.append(acct)
     return hits[0] if len(hits) == 1 else None
+
+
+# 星願思語 logs in through the same accounts and the same name rules as the others
+lp4.configure(log=log.info, accounts=accounts, resolve=resolve_login_account,
+              default_profile=DEFAULT_PROFILE)
+lp5.configure(log=log.info)
+lp5_android.configure(log=log.info)
 
 
 # How many levels each of LP1's seventeen games has, read straight out of the
@@ -6534,7 +6660,7 @@ class LittlePrinceHandler(http.server.BaseHTTPRequestHandler):
         # the online client has no pack URL - it is fetched from its own manifest -
         # but its card links here exactly like the other three, so it must pass
         # this guard instead of 404ing with "unknown game".
-        if code not in PACK_SOURCES and code != "LPO":
+        if code not in PACK_SOURCES and code not in ("LPO", "LP4"):
             self.send_error(404, "unknown game")
             return
         name = CLOUD_NAMES.get(code, code)
@@ -6673,6 +6799,85 @@ class LittlePrinceHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(302)
         self.send_header("Location", "/web")
         self.end_headers()
+
+    def serve_lp4(self, method):
+        """星願思語: its page, its files and its phpServices (lp4.py)."""
+        n = int(self.headers.get("Content-Length") or 0)
+        body = self.rfile.read(n) if n else b""
+        try:
+            reply = lp4.handle(method, self.path, self.headers.get("Host") or "", body)
+        except Exception as exc:                                      # noqa: BLE001
+            log.error("lp4: %s %s failed: %s" % (method, self.path, exc))
+            reply = (500, "text/plain", b"lp4 error")
+        status, ctype, payload = reply[0], reply[1], reply[2]
+        self.send_response(status)
+        if len(reply) > 3:
+            self.send_header("Location", reply[3])
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(payload)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_cors_headers()
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def serve_lp5(self, method):
+        """星夜重圓's php/Ajax calls and level bundles (lp5.py)."""
+        n = int(self.headers.get("Content-Length") or 0)
+        body = self.rfile.read(n) if n else b""
+        status, ctype, payload = lp5.handle(method, self.path, body)
+        self.send_response(status)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(payload)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def serve_reunion_api(self, method, path, body):
+        """The portal's sixth card and the 星夜重圓 Mods panel."""
+        route = path.rstrip("/")[len("/web/api/reunion/"):]
+        try:
+            data = json.loads(body.decode("utf-8") or "{}") if body else {}
+        except ValueError:
+            data = {}
+        try:
+            if route == "state":
+                self.send_json(lp5_android.state(PORT))
+            elif route == "licences":
+                self.send_json(lp5_android.licences())
+            elif route == "accept" and method == "POST":
+                if data.get("accept") is not True:
+                    self.send_json({"ok": False, "error": "the licences were not accepted"},
+                                   status=400)
+                    return
+                lp5_android.accept_licences(lp5_android.licences()["licences"])
+                log.info("lp5: the player accepted the Android SDK licences")
+                self.send_json({"ok": True})          # the portal presses Play next
+            elif route in ("play", "setup") and method == "POST":
+                if not lp5_android.state(PORT)["parts"]["licences"]:
+                    self.send_json({"ok": False, "need_licences": True,
+                                    "error": "accept the Android SDK licences first"},
+                                   status=409)
+                    return
+                self.send_json(lp5_android.start(route, PORT))
+            elif route in ("players", "mods", "restore"):
+                if not _session_email(self):
+                    self.send_json({"error": "sign in on the accounts page first"}, status=401)
+                elif route == "players":
+                    self.send_json(lp5.players_payload())
+                elif method != "POST":
+                    self.send_json({"error": "POST only"}, status=405)
+                elif route == "mods":
+                    self.send_json(lp5.apply_mod(data.get("id"), data.get("preset"),
+                                                 data.get("fields")))
+                else:
+                    self.send_json(lp5.restore_mods(data.get("id")))
+            else:
+                self.send_json({"error": "unknown"}, status=404)
+        except ValueError as exc:
+            self.send_json({"ok": False, "error": str(exc)}, status=400)
+        except Exception as exc:                                      # noqa: BLE001
+            log.error("lp5 api %s failed: %s" % (route, exc))
+            self.send_json({"ok": False, "error": str(exc)[:200]}, status=500)
 
     def serve_cloud(self, rel):
         """Static files from the mirrored cloud portal (cloud/<here>).
@@ -6845,6 +7050,18 @@ class LittlePrinceHandler(http.server.BaseHTTPRequestHandler):
         content_length = int(self.headers.get("Content-Length", 0))
         content_type = self.headers.get("Content-Type", "")
 
+        # ── 星願思語 (LP4): its phpServices are form posts, not AMF ──
+        if lp4.owns(path, self.headers.get("Host")):
+            self.serve_lp4("POST")
+            return
+        if lp5.owns(path):
+            self.serve_lp5("POST")
+            return
+        if path.split("?")[0].startswith("/web/api/reunion/"):
+            self.serve_reunion_api("POST", path.split("?")[0],
+                                   self.rfile.read(content_length) if content_length else b"")
+            return
+
         # ── the portal asking for a game it does not have yet ──
         if path.rstrip("/") == "/web/api/cloud_download":
             data = self.read_json_body(content_length)
@@ -6856,7 +7073,7 @@ class LittlePrinceHandler(http.server.BaseHTTPRequestHandler):
         # ── and asking for all of them at once ──
         if path.rstrip("/") == "/web/api/cloud_download_all":
             started, left_alone = [], []
-            for code in ("LP1", "LP2", "LP3", "LPO"):
+            for code in ("LP1", "LP2", "LP3", "LPO", "LP4"):
                 one = (cloud_state_reply().get("games") or {}).get(code) or {}
                 if one.get("ready"):
                     left_alone.append([code, "already here"])
@@ -7257,6 +7474,21 @@ class LittlePrinceHandler(http.server.BaseHTTPRequestHandler):
         """Handle GET requests — serve static files."""
         path = unquote(self.path)
         clean_path = path.split("?")[0].split("#")[0]
+        # ── 星願思語 (LP4): /lp4/... here, or anything for horoscope.* via the relay ──
+        #    Its ~600 textures would flood the log below, so lp4.py logs only misses.
+        if lp4.owns(clean_path, self.headers.get("Host")):
+            self.serve_lp4("GET")
+            return
+        # ── 星夜重圓 (LP5): the Android app's calls, from 10.0.2.2 ──
+        if lp5.owns(clean_path):
+            self.serve_lp5("GET")
+            return
+        if clean_path.startswith("/web/api/reunion/"):
+            self.serve_reunion_api("GET", clean_path, b"")
+            return
+        if clean_path.rstrip("/") in ("/mods/reunion", "/mods/reunion.html"):
+            self.serve_package_file("reunion_mods.html")
+            return
         # Log every fetch: which SWF the client asks for, and when, is the only way
         # to tell "the client never requested the panel" from "the panel failed".
         log.info(f"GET {clean_path}")

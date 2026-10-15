@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mods - 星夜重圓</title>
+<style>
+  :root { --bg:#000; --fg:#fff; --dim:#8a8a8a; --line:#242424; --card:#0b0b0b; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; background:var(--bg); color:var(--fg);
+               font:14px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; }
+  a { color:var(--fg); }
+  header { position:sticky; top:0; z-index:5; background:#000; border-bottom:1px solid var(--line);
+           padding:14px 18px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  h1 { font-size:15px; font-weight:600; margin:0; }
+  .grow { flex:1 1 auto; }
+  select, input, button { font:inherit; color:var(--fg); background:var(--card);
+                          border:1px solid var(--line); border-radius:8px; padding:6px 9px; }
+  button { cursor:pointer; }
+  button:hover { border-color:#777; }
+  button.primary { background:var(--fg); color:#000; border-color:var(--fg); font-weight:600; }
+  .muted { color:var(--dim); }
+  .hide { display:none; }
+  main { max-width:1120px; margin:0 auto; padding:18px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px;
+          padding:14px 16px; margin-bottom:14px; }
+  .card h3 { font-size:13px; margin:0 0 2px; font-weight:600; }
+  .sub { color:var(--dim); font-size:12.5px; margin:0 0 12px; max-width:80ch; }
+  .row { display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--line); }
+  .row:first-of-type { border-top:none; }
+  .row .t { flex:1 1 auto; }
+  .row .t b { display:block; font-weight:500; font-size:13px; }
+  .row .t span { display:block; color:var(--dim); font-size:11.5px; }
+  .msg { font-size:12px; color:var(--dim); margin-left:8px; }
+  .msg.ok { color:#9dffb0; } .msg.err { color:#ff8080; }
+  .fields { display:flex; flex-wrap:wrap; gap:10px 18px; align-items:end; }
+  .fields label { display:flex; flex-direction:column; gap:3px; font-size:11.5px; color:var(--dim); }
+  .fields input { width:110px; }
+  .stones input { width:64px; }
+  table { border-collapse:collapse; font-size:12px; }
+  th, td { padding:3px 5px; border-top:1px solid var(--line); text-align:center; white-space:nowrap; }
+  th { color:var(--dim); font-weight:500; }
+  td.g { text-align:left; color:#c9c9c9; }
+  td select { padding:2px 4px; font-size:11.5px; border-radius:6px; }
+  td select.set { border-color:#9dffb0; }
+  .wrap { overflow-x:auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Mods &middot; 星夜重圓 (Starwish Reunion)</h1>
+  <span class="grow"></span>
+  <a class="muted" href="/mods">Other games</a>
+  <label class="muted" for="player">Player</label>
+  <select id="player"></select>
+  <button id="refresh">Refresh</button>
+</header>
+<main>
+  <div id="signin" class="card hide">
+    <h3>Sign in first</h3>
+    <p class="sub">Mods write saved progress, so the server asks you to sign in on the
+      <a href="/web">accounts page</a> (any local account), then come back here.</p>
+  </div>
+  <div id="none" class="card hide">
+    <h3>No players yet</h3>
+    <p class="sub">A player appears here after the first start of 星夜重圓 from the portal
+      (the title screen's 開始遊戲 creates one for the emulator).</p>
+  </div>
+
+  <div id="body" class="hide">
+    <div class="card">
+      <h3>How these apply</h3>
+      <p class="sub">Every change is written to this player's save on the launcher and read by the
+        app at its <b>next login</b> - back out to the title screen (or restart the app) after
+        changing something.  Each field remembers the value it had before its first change, so
+        <b>Restore</b> puts the player back exactly.</p>
+      <div class="row"><div class="t"><b>Restore</b><span id="undoinfo"></span></div>
+        <button id="restore">Restore</button><span class="msg" id="restoremsg"></span></div>
+    </div>
+
+    <div class="card">
+      <h3>Presets</h3>
+      <div id="presets"></div>
+    </div>
+
+    <div class="card">
+      <h3>Wallet and stamina</h3>
+      <p class="sub">Gold (金幣), star atoms (星原子 - used to buy levels and make stars), the eight
+        stones, and stamina (60 is the normal cap; one point returns every 10 minutes).</p>
+      <div class="fields">
+        <label>Gold<input id="Gold" type="number" min="0"></label>
+        <label>Star atoms<input id="Staratom" type="number" min="0"></label>
+        <label>Stamina<input id="Strength" type="number" min="0" max="999"></label>
+        <span class="stones fields" id="stones"></span>
+        <button class="primary" id="savewallet">Save</button><span class="msg" id="walletmsg"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Games, levels and stars</h3>
+      <p class="sub">Games open in the world map's order (UnlockedGame = how many are open).
+        Each game's highest unlocked level is 1-7; a star marks its constellation as made.</p>
+      <div class="fields" style="margin-bottom:10px">
+        <label>Games open (1-17)<input id="UnlockedGame" type="number" min="1" max="17"></label>
+      </div>
+      <div class="wrap"><table id="levels"></table></div>
+      <div style="margin-top:10px"><button class="primary" id="savelevels">Save</button>
+        <span class="msg" id="levelsmsg"></span></div>
+    </div>
+
+    <div class="card">
+      <h3>Highest rank per level</h3>
+      <p class="sub">What the map shows for each level, and what counts as passed.  "—" keeps
+        the rank the player actually earned (shown in grey); a choice overrides it.</p>
+      <div class="wrap"><table id="ranks"></table></div>
+      <div style="margin-top:10px"><button class="primary" id="saveranks">Save</button>
+        <span class="msg" id="ranksmsg"></span></div>
+    </div>
+  </div>
+</main>
+<script>
+(function () {
+  var data = null, cur = null;
+  var $ = function (id) { return document.getElementById(id); };
+
+  function api(url, body) {
+    var opt = body ? { method: "POST", headers: { "Content-Type": "application/json" },
+                       body: JSON.stringify(body), credentials: "same-origin" }
+                   : { credentials: "same-origin" };
+    return fetch(url, opt).then(function (r) {
+      return r.json().then(function (j) { j._status = r.status; return j; });
+    });
+  }
+  function say(id, text, ok) {
+    var el = $(id); el.textContent = text; el.className = "msg " + (ok ? "ok" : "err");
+  }
+
+  function load(keep) {
+    api("/web/api/reunion/players").then(function (d) {
+      if (d._status === 401) { $("signin").classList.remove("hide"); return; }
+      data = d;
+      var sel = $("player"), want = keep || sel.value;
+      sel.innerHTML = "";
+      d.players.forEach(function (p) {
+        var o = document.createElement("option");
+        o.value = p.ID; o.textContent = p.Name + " (#" + p.ID + ")";
+        sel.appendChild(o);
+      });
+      if (!d.players.length) { $("none").classList.remove("hide"); $("body").classList.add("hide"); return; }
+      $("none").classList.add("hide");
+      if (want) { sel.value = want; }
+      show();
+    });
+  }
+
+  function show() {
+    var id = Number($("player").value);
+    cur = data.players.filter(function (p) { return p.ID === id; })[0];
+    if (!cur) { return; }
+    $("body").classList.remove("hide");
+    var f = cur.fields;
+    $("undoinfo").textContent = cur.undo.length ? "Changed fields: " + cur.undo.join(", ")
+                                                : "Nothing changed by Mods.";
+    $("restore").disabled = !cur.undo.length;
+    ["Gold", "Staratom", "Strength", "UnlockedGame"].forEach(function (k) { $(k).value = f[k]; });
+    var st = $("stones"); st.innerHTML = "";
+    (f.Stones || []).forEach(function (v, i) {
+      st.insertAdjacentHTML("beforeend", '<label>Stone ' + (i + 1) +
+        '<input type="number" min="0" data-stone="' + i + '" value="' + v + '"></label>');
+    });
+    // levels / stars, in the map's order
+    var h = '<tr><th>Map</th><th>Game</th><th>Unlocked level</th><th>Star made</th></tr>';
+    data.map_order.forEach(function (g, i) {
+      var lv = '<select data-lv="' + g + '">';
+      for (var n = 1; n <= data.levels; n++) {
+        lv += '<option' + (f.UnlockedLevel[g - 1] === n ? " selected" : "") + '>' + n + '</option>';
+      }
+      lv += '</select>';
+      h += '<tr><td>' + (i + 1) + '</td><td class="g">Game ' + g + '</td><td>' + lv + '</td>' +
+           '<td><input type="checkbox" data-star="' + g + '"' +
+           (f.UnlockedStar[g - 1] ? " checked" : "") + '></td></tr>';
+    });
+    $("levels").innerHTML = h;
+    // ranks
+    var r = '<tr><th>Game</th>';
+    for (var n = 1; n <= data.levels; n++) { r += '<th>Lv' + n + '</th>'; }
+    r += '</tr>';
+    data.map_order.forEach(function (g) {
+      r += '<tr><td class="g">Game ' + g + '</td>';
+      for (var n = 1; n <= data.levels; n++) {
+        var key = g + "-" + n, over = (f.RankOverride || {})[key], best = cur.best[key];
+        var s = '<select data-rank="' + key + '"' + (over ? ' class="set"' : '') + '>' +
+                '<option value="">— ' + (best && !over ? best : "") + '</option>';
+        data.ranks.forEach(function (rk) {
+          s += '<option' + (over === rk ? " selected" : "") + '>' + rk + '</option>';
+        });
+        r += '<td>' + s + '</select></td>';
+      }
+      r += '</tr>';
+    });
+    $("ranks").innerHTML = r;
+  }
+
+  function mod(body, msg) {
+    body.id = cur.ID;
+    return api("/web/api/reunion/mods", body).then(function (d) {
+      if (d.ok) { say(msg, "Saved - takes effect at the next login", true); load(cur.ID); }
+      else { say(msg, d.error || "failed", false); }
+    });
+  }
+
+  $("player").onchange = show;
+  $("refresh").onclick = function () { load(); };
+  $("restore").onclick = function () {
+    api("/web/api/reunion/restore", { id: cur.ID }).then(function (d) {
+      if (d.ok) { say("restoremsg", "Restored: " + (d.restored.join(", ") || "nothing"), true); load(cur.ID); }
+      else { say("restoremsg", d.error || "failed", false); }
+    });
+  };
+  $("savewallet").onclick = function () {
+    var stones = [].map.call(document.querySelectorAll("[data-stone]"), function (el) { return el.value; });
+    mod({ fields: { Gold: $("Gold").value, Staratom: $("Staratom").value,
+                    Strength: $("Strength").value, Stones: stones } }, "walletmsg");
+  };
+  $("savelevels").onclick = function () {
+    var lv = [], star = [];
+    for (var g = 1; g <= data.games; g++) {
+      lv.push(document.querySelector('[data-lv="' + g + '"]').value);
+      star.push(document.querySelector('[data-star="' + g + '"]').checked ? 1 : 0);
+    }
+    mod({ fields: { UnlockedGame: $("UnlockedGame").value, UnlockedLevel: lv, UnlockedStar: star } },
+        "levelsmsg");
+  };
+  $("saveranks").onclick = function () {
+    var over = {};
+    [].forEach.call(document.querySelectorAll("[data-rank]"), function (el) {
+      if (el.value) { over[el.getAttribute("data-rank")] = el.value; }
+    });
+    // the whole grid is sent, so a cell set back to "—" drops its override
+    mod({ fields: { RankOverride: over }, replace_ranks: true }, "ranksmsg");
+  };
+
+  api("/web/api/reunion/players").then(function () {});
+  load();
+  // presets
+  fetch("/web/api/reunion/players", { credentials: "same-origin" }).then(function (r) { return r.json(); })
+    .then(function (d) {
+      var box = $("presets"); box.innerHTML = "";
+      (d.presets || []).forEach(function (p) {
+        var row = document.createElement("div"); row.className = "row";
+        row.innerHTML = '<div class="t"><b>' + p.label + '</b><span>' + p.detail + '</span></div>' +
+                        '<button>Apply</button><span class="msg"></span>';
+        row.querySelector("button").onclick = function () {
+          var m = row.querySelector(".msg");
+          api("/web/api/reunion/mods", { id: cur.ID, preset: p.id }).then(function (r) {
+            m.textContent = r.ok ? "Applied - next login" : (r.error || "failed");
+            m.className = "msg " + (r.ok ? "ok" : "err");
+            if (r.ok) { load(cur.ID); }
+          });
+        };
+        box.appendChild(row);
+      });
+    });
+})();
+</script>
+</body>
+</html>

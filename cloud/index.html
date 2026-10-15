@@ -35,6 +35,8 @@
 				<div id="p4">
 					<a class="btn" href="/play-flash">進入遊戲</a>
 				</div>
+				<div id="p5"><a class="btn" href="/cloud/install?code=LP4">進入遊戲</a></div>
+				<div id="p6"><a class="btn" href="#">進入遊戲</a></div>
 			</div>
 			<div>
 				<a class="btn" id="dlall" href="#">下載全部遊戲</a>
@@ -91,7 +93,55 @@
 	#p2.locked { background-image: url("images/dlimg_prince2_gray.png"); }
 	#p3.locked { background-image: url("images/dlimg_prince3_gray.png"); }
 	#p4.locked { background-image: url("images/dlimg_prince4_gray.png"); }
-	#p1.busy .btn, #p2.busy .btn, #p3.busy .btn { opacity: 0.8; }
+	/* 星願思語 (LP4) is the fifth card.  Five 212px cards need 1060px, more than
+	   style.css's 978px column, and the publisher's browser opens at 1280px wide. */
+	/* Six cards: scaled to 190px so the row fits the publisher's 1280px window. */
+	#maintable { width: 1160px; }
+	#maintable .row > div { width: 190px; height: 235px; background-size: 100% 100%;
+		flex: 0 0 auto; }
+	#maintable .row { flex-wrap: nowrap; }
+	#p5 {
+		background-image: url("images/dlimg_prince5.png");
+		background-repeat: no-repeat;
+		width: 212px;
+		height: 262px;
+		position: relative;
+	}
+	#p5 .btn {
+		background: #9a5a10;
+		background: -webkit-linear-gradient(top, #9a5a10 0%, #c7841e 30%, #e0a83c 100%);
+		background: linear-gradient(to bottom, #9a5a10 0%, #c7841e 30%, #e0a83c 100%);
+		bottom: 13px; display: table; left: 15px; position: absolute;
+	}
+	#p5 .btn:hover {
+		background: linear-gradient(to bottom, #F1592A 0%, #F47A25 30%, #F7941E 100%);
+	}
+	#p5.locked { background-image: url("images/dlimg_prince5_gray.png"); }
+	/* 星夜重圓 (LP5): the Android app, played in the Android emulator */
+	#p6 { background-image: url("images/dlimg_prince6.png"); background-repeat: no-repeat;
+		position: relative; }
+	#p6 .btn {
+		background: linear-gradient(to bottom, #1d6f8c 0%, #2a93b5 30%, #45b8d8 100%);
+		bottom: 13px; display: table; left: 15px; position: absolute;
+	}
+	#p6 .btn:hover { background: linear-gradient(to bottom, #F1592A 0%, #F47A25 30%, #F7941E 100%); }
+	#p6.locked { background-image: url("images/dlimg_prince6_gray.png"); }
+	#lic { position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: rgba(5,12,30,.72);
+		display: none; z-index: 80; }
+	#lic .box { position: absolute; left: 50%; top: 4%; width: 760px; max-width: 94%;
+		margin-left: -380px; bottom: 4%; background: #fff; border-radius: 10px; padding: 16px;
+		text-align: left; box-shadow: 0 6px 30px rgba(0,0,0,.5); display: flex;
+		flex-direction: column; }
+	#lic h2 { margin: 0 0 6px; font-size: 18px; line-height: 1.4; color: #1c3d6e; }
+	#lic p { font-size: 13px; line-height: 1.5; color: #333; margin: 4px 0; }
+	#lic code, #lic span { font-size: 12px; }
+	#lic pre { flex: 1; overflow: auto; white-space: pre-wrap; font: 11px/1.45 Consolas, monospace;
+		background: #f4f6fa; border: 1px solid #d5dbe6; padding: 10px; margin: 8px 0; color: #222; }
+	#lic .row2 { text-align: right; }
+	#lic button { font-size: 14px; padding: 7px 16px; margin-left: 8px; border-radius: 6px;
+		border: 1px solid #889; background: #eef; cursor: pointer; }
+	#lic button.yes { background: #1e56a3; color: #fff; border-color: #1e56a3; }
+	#p1.busy .btn, #p2.busy .btn, #p3.busy .btn, #p5.busy .btn { opacity: 0.8; }
 	/* the download progress bar, shown once OK is pressed */
 	#dlwrap {
 		position: fixed; left: 50%; bottom: 22px; margin-left: -215px;
@@ -114,7 +164,7 @@
 	// Ask the local server which games are actually on this machine: dim the ones
 	// that are missing, and offer to download one when its 進入遊戲 is pressed.
 	(function () {
-		var cards = { p1: "LP1", p2: "LP2", p3: "LP3", p4: "LPO" };
+		var cards = { p1: "LP1", p2: "LP2", p3: "LP3", p4: "LPO", p5: "LP4", p6: "LP5" };
 		var state = {};
 		var pending = "";
 		var timer = null;
@@ -122,7 +172,7 @@
 		var stateerror = "";
 		var justDone = {};      // code -> when its download finished
 		var wasDown = {};       // code -> was it downloading last time we looked
-		var GRAY_CODES = { LP1: 1, LP2: 1, LP3: 1, LPO: 1 };   // all four grey when missing
+		var GRAY_CODES = { LP1: 1, LP2: 1, LP3: 1, LPO: 1, LP4: 1, LP5: 1 };   // every card greys when missing
 		// the launcher sets the language, and the download page follows it - so do
 		// these labels, taken from the same state reply
 		var LANG = "zh";
@@ -194,6 +244,9 @@
 				return t("refreshing");
 			}
 			var one = state[code] || {};
+			if (one.downloading && one.android) {
+				return one.phase ? one.phase.slice(0, 22) : t("loading");
+			}
 			if (one.downloading) {
 				// "downloading 100%" while it writes a million files out tells the
 				// player nothing, so name the step being done
@@ -222,6 +275,7 @@
 				var code = cards[id], one = state[code] || {};
 				if (one.downloading) {
 					var shown = (one.percent || 0) + "%";
+					if (one.android && one.phase) { shown = one.phase + " (" + shown + ")"; }
 					if (one.phase === "unpack") { shown = t("unpacking"); }
 					else if (one.phase === "verify") { shown = t("verifying"); }
 					busy.push(code + " " + shown);
@@ -297,6 +351,7 @@
 					// download finished, 進入遊戲 did nothing until the page was
 					// reloaded by hand.
 					if (!loaded || one.downloading) { link.removeAttribute("href"); }
+					else if (one.android) { link.setAttribute("href", "#"); }
 					else { link.setAttribute("href", "/cloud/install?code=" + code); }
 				}
 			}
@@ -376,7 +431,8 @@
 		}
 
 		function describe(code) {
-			var names = { LP1: "星願小王子 (LP1)", LP2: "星願外傳 (LP2)", LP3: "星願歷奇 (LP3)" };
+			var names = { LP1: "星願小王子 (LP1)", LP2: "星願外傳 (LP2)", LP3: "星願歷奇 (LP3)",
+			              LP4: "星願思語 (LP4)", LP5: "星夜重圓 (LP5)" };
 			var one = state[code] || {};
 			var who = names[code] || code;
 			var tail = one.missing ? t("dl_files").replace("%s", one.missing) : "";
@@ -390,6 +446,7 @@
 				var code = cards[this.id];
 				var one = state[code] || {};
 				if (!loaded) { ev.preventDefault(); return; }
+				if (one.android) { ev.preventDefault(); android(one); return; }
 				if (one.ready) { return; }                // let the link through
 				if (one.downloading) {
 					alert(t("still") + " (" + (one.percent || 0) + "%).");
@@ -432,7 +489,7 @@
 				var todo = [];
 				for (var id in cards) {
 					var code = cards[id], one = state[code] || {};
-					if (!loaded || one.downloading || one.ready) { continue; }
+					if (!loaded || one.downloading || one.ready || one.android) { continue; }
 					todo.push(code);
 				}
 				if (!todo.length) {
@@ -463,6 +520,55 @@
 				return false;
 			};
 		}
+		// ── 星夜重圓 (LP5): an Android app.  The first press shows Google's Android SDK
+		//    licences - nothing is downloaded until they are accepted here - then the
+		//    launcher sets up the emulator, fetches the game and starts it. ──
+		function post(url, body) {
+			return fetch(url, { method: "POST", headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body || {}) }).then(function (r) { return r.json(); });
+		}
+		function playAndroid() {
+			if (!timer) { timer = setInterval(refresh, 1200); }
+			post("/web/api/reunion/play").then(function (d) {
+				if (d && d.need_licences) { showLicences(); return; }
+				if (d && d.ok === false) { alert(d.error || "could not start"); }
+				refresh();
+			});
+		}
+		function android(one) {
+			if (one.downloading) { return; }
+			if (!one.licences) { showLicences(); return; }
+			playAndroid();
+		}
+		function showLicences() {
+			// the dialog's markup comes after this script, so wire it up here
+			document.getElementById("licno").onclick = function () {
+				document.getElementById("lic").style.display = "none";
+			};
+			document.getElementById("licyes").onclick = function () {
+				document.getElementById("lic").style.display = "none";
+				post("/web/api/reunion/accept", { accept: true }).then(function (d) {
+					if (d && d.ok === false) { alert(d.error); return; }
+					playAndroid();
+				});
+			};
+			var pre = document.getElementById("lictext");
+			pre.textContent = "Loading the licence text from Google ...";
+			document.getElementById("lic").style.display = "block";
+			fetch("/web/api/reunion/licences").then(function (r) { return r.json(); })
+				.then(function (d) {
+					var parts = [];
+					(d.licences || []).forEach(function (l) {
+						parts.push("==== " + l.id + " ====\n\n" + l.text);
+					});
+					pre.textContent = parts.join("\n\n\n") || "Could not load the licences.";
+					document.getElementById("licpk").textContent =
+						(d.packages || []).join(", ") + " (about " + (d.size_mb || "?") + " MB)";
+				})["catch"](function () {
+					pre.textContent = "Could not reach dl.google.com for the licence text.";
+				});
+		}
+
 		wireDownloadAll();
 		refresh();
 		// A game installed somewhere else - the launcher, another window - left this
@@ -475,7 +581,19 @@
 		setInterval(function () { if (!anyBusy()) { refresh(); } }, 5000);
 	})();
 	</script>
-	<div id="ver">portal 6</div>
+	<div id="lic"><div class="box">
+		<h2>星夜重圓 needs the Android emulator</h2>
+		<p>星夜重圓 was only released for Android and iOS, so the launcher plays it in
+		Google's Android emulator.  It will download from dl.google.com into
+		<code>%LOCALAPPDATA%\Android\Sdk</code>: <span id="licpk"></span>.  Then it
+		fetches the game itself from the publisher's server.</p>
+		<p>Google's Android SDK licence terms below apply to those packages.  Nothing is
+		downloaded unless you accept them.</p>
+		<pre id="lictext"></pre>
+		<div class="row2"><button id="licno">Decline</button>
+		<button class="yes" id="licyes">I accept the licence terms</button></div>
+	</div></div>
+	<div id="ver">portal 8</div>
 </body>
 </html>
 

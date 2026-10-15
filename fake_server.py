@@ -23,6 +23,8 @@
    On start the server makes sure these lines exist in the hosts file:
        127.0.0.1 www.little-prince.com.hk
        127.0.0.1 little-prince.com.hk
+       127.0.0.1 www1.little-prince.com.hk
+       127.0.0.1 horoscope.little-prince.com.hk
        127.0.0.1 www.sunnyinteractive.com
        127.0.0.1 file.sunnyinteractive.com
    and marks them with "# littleprince-launcher".  When you stop the server
@@ -52,8 +54,9 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_PATH = os.path.join(SCRIPT_DIR, 'littleprince_patcher.log')
 
 ONLINE_HOST = 'www1.little-prince.com.hk'      # Little Prince Online
+LP4_HOST = 'horoscope.little-prince.com.hk'     # 星願思語 - the same site as www1.../lp4/
 ONLINE_PORT = int(os.environ.get('LPO_PORT', '8080'))
-DOMAINS = ('www.little-prince.com.hk', 'little-prince.com.hk', ONLINE_HOST,
+DOMAINS = ('www.little-prince.com.hk', 'little-prince.com.hk', ONLINE_HOST, LP4_HOST,
            'www.sunnyinteractive.com', 'file.sunnyinteractive.com')
 MARK = '# littleprince-launcher'
 
@@ -131,7 +134,8 @@ def hosts_ensure():
             f.write(block)
         HOSTS_STATE['added'] = block.splitlines()
         flush_dns()
-        log("  hosts: added 4 redirect lines to %s (removed again on exit)" % path)
+        log("  hosts: added %d redirect lines to %s (removed again on exit)"
+            % (len(DOMAINS), path))
     except Exception as e:
         log("  hosts: cannot write %s (%s)" % (path, e))
         log("  hosts: run this server as admin/root to get the redirect")
@@ -431,9 +435,11 @@ def handle_client(conn, addr):
         # Little Prince Online runs on its own port - hand its traffic over
         plain_host = host.split(':')[0].lower()
         # The cloud games live under /LP/personal/ and link to themselves on both
-        # publisher hosts, so serve that path whatever the hostname says.
-        if (plain_host == ONLINE_HOST
-                or path.startswith(('/web', '/admin', '/play', '/LP/personal/'))):
+        # publisher hosts, so serve that path whatever the hostname says.  星願思語
+        # (LP4) is served by the online server too: its own host, or /lp4/ on any.
+        if (plain_host in (ONLINE_HOST, LP4_HOST)
+                or path.startswith(('/web', '/admin', '/play', '/LP/personal/',
+                                    '/lp4/', '/swlp4/'))):
             log("relay %s%s -> online server (port %d)" % (path, tag, ONLINE_PORT))
             relay_online(conn, request)
             return

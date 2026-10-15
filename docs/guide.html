@@ -32,7 +32,7 @@
     <div class="guide-layout">
       <details class="contents" open data-contents>
         <summary>ON THIS PAGE</summary>
-        <nav aria-label="Guide contents"><a href="#quick-start">01 / Quick start</a><a href="#supported-games">02 / Supported games</a><a href="#how-it-works">03 / How it works</a><a href="#local-tools">04 / Local tools</a><a href="#requirements">05 / Requirements</a><a href="#safety">06 / Your data & safety</a><a href="#limitations">07 / Limitations</a><a href="#troubleshooting">08 / Troubleshooting</a><a href="#downloads">09 / Download details</a></nav>
+        <nav aria-label="Guide contents"><a href="#quick-start">01 / Quick start</a><a href="#supported-games">02 / Supported games</a><a href="#how-it-works">03 / How it works</a><a href="#local-tools">04 / Local tools</a><a href="#requirements">05 / Requirements</a><a href="#safety">06 / Your data & safety</a><a href="#limitations">07 / Limitations</a><a href="#troubleshooting">08 / Troubleshooting</a><a href="#downloads">09 / Download details</a><a href="#android">10 / Starwish Reunion (Android)</a></nav>
       </details>
       <article class="guide-article" aria-label="Launcher setup and support guide">
         <section id="quick-start">
@@ -134,6 +134,21 @@
           <div class="checksum"><small>SHA-256 · WINDOWS v1.0a</small><code id="sha256">f87556d45f101db9c329498af9938092e4f7e14f1798d21090d45c13c5e9f4b7</code><button type="button" data-copy-checksum aria-live="polite">Copy checksum</button></div>
           <p>Optional integrity check in PowerShell: <code>Get-FileHash .\littleprince-launcher-v1.0a.zip -Algorithm SHA256</code>. Compare the result with the value above. See also the <a href="checksums.txt" download>checksum text file</a>.</p>
           <p>Website source and the launcher files are in the <a href="https://github.com/kitzure/littleprince-launcher" target="_blank" rel="noopener noreferrer">GitHub repository</a>. This guide covers the Windows v1.0a download linked here.</p>
+        </section>
+
+        <section id="android">
+          <h2>10 / Starwish Reunion (Android)</h2>
+          <p><strong>星夜重圓 Starwish Reunion v1.13.0</strong>, the publisher's Android app, repackaged so it installs and runs on newer phones. It still uses the publisher's own server: sign in with your existing Starwish account (or tap Start as before). The game code is unchanged.</p>
+          <p>What was changed, and nothing else:</p>
+          <ul>
+            <li>The separate OBB data file is built into the APK, so there is one file to install (Android 11+ no longer lets you copy files into <code>Android/obb</code>).</li>
+            <li>Target SDK raised from 23 to 24, which Android 15 requires before it will install an app.</li>
+            <li>The phone-state permission is removed. On Android 10+ it no longer reaches the phone ID, and the old app then gave every phone the same device ID, which signed different players into one account. Your device ID now comes from your own phone.</li>
+          </ul>
+          <div class="link-row"><a href="__REUNION_APK_URL__">Download APK ↓</a></div>
+          <p><code>StarwishReunion-1.13.0-android10-fix.apk</code> · 181.0 MB · signed with a new key, so uninstall any older copy of the app first. Requires Android 4.1+ on a phone that can run 32-bit apps. Phones that are 64-bit only (for example Pixel 7 and later) cannot run this 2016 Unity game.</p>
+          <div class="checksum"><small>SHA-256 · ANDROID APK</small><code>05451a0ebd7a22cf2bafb36f7c29ee9a65b83f816e64926c9edcdf8fd2531ca0</code></div>
+          <p>Unofficial and not affiliated with the publisher. Use it only if you are entitled to the original app.</p>
         </section>
       </article>
     </div>

@@ -127,7 +127,18 @@ def _read() -> dict:
 def _write(data: dict):
     tmp = ACCOUNTS_PATH.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), "utf-8")
-    os.replace(tmp, ACCOUNTS_PATH)
+    # Windows will not replace a file another thread has open for reading (reads
+    # take no lock), and answers "Access is denied".  That read lasts milliseconds,
+    # so try again briefly instead of losing the save.
+    for attempt in range(20):
+        try:
+            os.replace(tmp, ACCOUNTS_PATH)
+            return
+        except PermissionError:
+            if attempt == 19:
+                raise
+            import time
+            time.sleep(0.05)
 
 
 # ─── API ────────────────────────────────────────────────────────────────────

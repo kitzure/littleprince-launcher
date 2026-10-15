@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>星願思語</title>
+<style>
+  html, body { margin:0; padding:0; width:100%; height:100%; background:#000;
+               overflow:hidden; }
+  /* 16:10, letterboxed and sized by script: the publisher's browser is Electron 4
+     (Chromium 69), which has neither `inset` nor `aspect-ratio`. */
+  #box { position:relative; margin:0 auto; }
+  #box object { display:block; width:100%; height:100%; }
+  #note { position:absolute; left:0; right:0; bottom:4px; text-align:center; z-index:5;
+          color:rgba(255,255,255,.5); font:11px -apple-system,"Segoe UI",system-ui,sans-serif; }
+  #note a { color:rgba(255,255,255,.8); }
+</style>
+</head>
+<body>
+<div id="box"></div>
+<div id="note"></div>
+<script>
+  // The publisher's web build of 星願思語.  It draws with Stage3D (Starling), so it
+  // needs real Flash with wmode=direct - the publisher's own browser.  The SWF is
+  // served by the local server with its addresses pointed back at it.
+  var ENTRY = "CanvasToy.swf";
+  var hasFlash = /Electron/.test(navigator.userAgent);
+  var BROWSER_ZIP =
+    "http://www.little-prince.com.hk/littleprince/Download/LittlePrinceBrowserHome.zip";
+  var box = document.getElementById("box");
+
+  function fit() {
+    var w = document.documentElement.clientWidth || 1280;
+    var h = document.documentElement.clientHeight || 800;
+    if (w / 16 > h / 10) { w = h / 10 * 16; } else { h = w / 16 * 10; }
+    box.style.width = Math.round(w) + "px";
+    box.style.height = Math.round(h) + "px";
+    box.style.top = Math.round(((document.documentElement.clientHeight || h) - h) / 2) + "px";
+  }
+  window.addEventListener("resize", fit);
+
+  function withFlash() {
+    // noScale: the game scales itself to the stage it is given
+    box.innerHTML =
+      '<object id="game" type="application/x-shockwave-flash" data="' + ENTRY + '">' +
+      '<param name="movie" value="' + ENTRY + '">' +
+      '<param name="wmode" value="direct">' +
+      '<param name="allowScriptAccess" value="always">' +
+      '<param name="allowFullScreen" value="true">' +
+      '<param name="menu" value="false">' +
+      '<param name="scale" value="noScale"></object>';
+    fit();
+  }
+
+  function showNoFlash() {
+    box.style.width = "auto"; box.style.height = "auto"; box.style.top = "30%";
+    box.innerHTML =
+      '<div style="max-width:580px;margin:0 auto;padding:0 24px;text-align:center;' +
+      'color:#fff;font:14px/1.9 -apple-system,\'Segoe UI\',system-ui,sans-serif">' +
+      '<div style="font-size:19px;color:#ffd98a;margin-bottom:12px">' +
+      'This game plays in the publisher\'s own browser</div>' +
+      '星願思語 draws with Stage3D, which only real Flash has.<br><br>' +
+      'Download the official browser, then open this page again:<br>' +
+      '<a style="color:#ffd98a" href="' + BROWSER_ZIP + '">LittlePrinceBrowserHome.zip</a>' +
+      '<div style="margin-top:16px;color:rgba(255,255,255,.66);font-size:12px">' +
+      'The launcher downloads it and sets it up for you &mdash; just press <b>Play</b> ' +
+      'there.<br><a style="color:rgba(255,255,255,.8)" href="/LP/personal/">' +
+      'Back to all games</a></div></div>';
+  }
+
+  function boot() {
+    try {
+      if (hasFlash) { withFlash(); } else { showNoFlash(); }
+    } catch (e) {
+      document.getElementById("note").textContent = "Could not start the player: " + e;
+    }
+  }
+  if (document.readyState === "complete") { boot(); }
+  else { window.addEventListener("load", boot); }
+</script>
+</body>
+</html>

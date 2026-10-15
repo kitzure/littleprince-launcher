@@ -6,5 +6,14 @@
   "backup_url": "https://files.catbox.moe/mqijfv.zip",
   "size_bytes": 12419299,
   "sha256": "f87556d45f101db9c329498af9938092e4f7e14f1798d21090d45c13c5e9f4b7",
-  "release_page": "https://github.com/kitzure/littleprince-launcher/releases/tag/v1.0a"
+  "release_page": "https://github.com/kitzure/littleprince-launcher/releases/tag/v1.0a",
+  "android": {
+    "title": "星夜重圓 Starwish Reunion",
+    "version": "1.13.0",
+    "filename": "StarwishReunion-1.13.0-android10-fix.apk",
+    "url": "__REUNION_APK_URL__",
+    "size_bytes": 181010542,
+    "sha256": "05451a0ebd7a22cf2bafb36f7c29ee9a65b83f816e64926c9edcdf8fd2531ca0",
+    "server": "publisher (reunion.little-prince.com.hk)"
+  }
 }

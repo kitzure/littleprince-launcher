@@ -1,3 +1,10 @@
 
 # the chosen download source, set in the launcher - a preference, not part of the app
 lpo/download-settings.json
+
+# 星願思語 (LP4): downloaded from the publisher by the portal / lpo/fetch_lp4.py
+/lp4/
+
+# 星夜重圓 (LP5): APK/OBB/bundles, the built APK and its signing key, and the players
+/lp5/
+lpo/reunion_players.json
