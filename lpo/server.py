@@ -1268,6 +1268,10 @@ PLAYER_FIELDS = {
     "crystal3", "crystal4", "mazerec", "eventdata", "left_total", "right_total",
     "score", "high", "gamelv", "weapon", "name", "sex", "birth", "addclosetlv",
 }
+# addItem/removeItem are wardrobe operations, not profile fields: one send can
+# queue several of each, in order, so they are kept as a list under this key.
+WARDROBE_OPS = "_wardrobe_ops"
+WARDROBE_FIELDS = ("additem", "removeitem")
 NUMERIC_FIELDS = {"coins", "totalitems", "totalcrystals", "crystal0", "crystal1",
                   "crystal2", "crystal3", "crystal4", "left_total", "right_total",
                   "score", "high", "eventdata"}
@@ -1285,7 +1289,12 @@ def _collect_pairs(value, out, depth=0):
         t, d = value.get("type"), value.get("data")
         if isinstance(t, str) and isinstance(d, (str, int, float, bool)):
             field = str(t).strip().lower()
-            if field in MMO_CHAR_PARTS:
+            if field in WARDROBE_FIELDS:
+                # Buying two items before send() queues two addItem pairs; a
+                # first-wins sweep kept only the first and lost the rest.
+                if isinstance(d, str) and d:
+                    out.setdefault(WARDROBE_OPS, []).append((field, d))
+            elif field in MMO_CHAR_PARTS:
                 # RemoteService queues changes in order. If the player equips
                 # and removes the same part before send(), the LAST change wins,
                 # including an empty string (taking a hat/accessory off).
@@ -1335,6 +1344,8 @@ def player_update(raw_body: bytes):
     for k in PLAYER_FIELDS:                       # keep the profile's own spelling
         canonical.setdefault(k.lower(), k)
     update = {}
+    if pairs.get(WARDROBE_OPS):
+        update[WARDROBE_OPS] = pairs.pop(WARDROBE_OPS)
     for k, v in pairs.items():
         if k not in PLAYER_FIELDS and k not in canonical:
             continue
@@ -1379,23 +1390,24 @@ def persist_player_update(raw_body: bytes, service: str = "") -> bool:
     # a one-time preset would otherwise be spent after 999999 swings' worth of play.
     owner_email = CURRENT_PLAYER.get("email") or ""
     owner_prof = (accounts.get(owner_email) or {}).get("profile") or accounts.get(owner_email) or {}
+    # Never stored as a field; without a signed-in owner there is no list to edit.
+    wardrobe_ops = update.pop(WARDROBE_OPS, None) or []
     if owner_email:
         import json as _json
         rows = lpo_profile_items(owner_prof) or []
-        names = [r[1] for r in rows]
         touched = False
         if "addclosetlv" in update:
             update.pop("addclosetlv")
             update["closetLv"] = str(lpo_closet_pages(
                 dict(owner_prof, unlimitedWardrobe="0")) + 1)
-        add = update.pop("additem", None)
-        if isinstance(add, str) and add and add not in names and add not in LPO_SPORTSWEAR:
-            rows.append([1, add])
-            touched = True
-        drop = update.pop("removeitem", None)
-        if isinstance(drop, str) and drop in names:
-            rows = [r for r in rows if r[1] != drop]
-            touched = True
+        for op, name in wardrobe_ops:              # in the order the client queued them
+            names = [r[1] for r in rows]
+            if op == "additem" and name not in names and name not in LPO_SPORTSWEAR:
+                rows.append([1, name])
+                touched = True
+            elif op == "removeitem" and name in names:
+                rows = [r for r in rows if r[1] != name]
+                touched = True
         if touched:
             update["items"] = _json.dumps(rows, ensure_ascii=False)
             log.info("  LPO wardrobe: %d items for %s" % (len(rows), owner_email))
@@ -1407,6 +1419,8 @@ def persist_player_update(raw_body: bytes, service: str = "") -> bool:
                             update[k] = LPO_UNLIMITED_USES
                     except (TypeError, ValueError):
                         update[k] = LPO_UNLIMITED_USES
+    if not update:                      # only wardrobe ops, and nobody to file them on
+        return False
     key = str(uid).split(".")[0] if uid else ""          # a numeric uid arrives as 10002.0
     where = ""
     if key:
@@ -3335,7 +3349,7 @@ def lpo_profile_items(prof: dict):
             return None
     if not isinstance(raw, (list, tuple)):
         return None
-    rows = []
+    rows, pending = [], []                 # pending: rows still needing a bag/storage slot
     types = lpo_item_types()
     for row in raw:
         if not isinstance(row, (list, tuple)) or len(row) < 2:
@@ -3346,18 +3360,31 @@ def lpo_profile_items(prof: dict):
             out = [int(row[0]), str(row[1])]
         except (TypeError, ValueError):
             continue
-        if len(row) >= 4:
-            out += [int(row[2]), int(row[3])]
-        # Repair old grants in the login view, preserving the rollback snapshot.
         category, quantity = types.get(out[1], (None, 1))
+        if len(row) >= 4:
+            try:
+                out += [int(float(row[2])), int(float(row[3]))]
+            except (TypeError, ValueError):
+                # A damaged slot/count must not stop the login; re-slot the item
+                # rather than drop it (the next save would make that permanent).
+                if out[0] in (2, 3):
+                    out += [None, quantity]
+                    pending.append(out)
+        # Repair old grants in the login view, preserving the rollback snapshot.
         if out[0] == 1 and category in ("item", "weapon"):
-            kind = 2 if category == "item" else 3
-            pos = 0
-            occupied = {r[2] for r in rows if r[0] == kind and len(r) >= 4}
-            while pos in occupied:
-                pos += 1
-            out = [kind, out[1], pos, quantity]
+            out = [2 if category == "item" else 3, out[1], None, quantity]
+            pending.append(out)
         rows.append(out)
+    # Slots go to repaired rows only after every stored slot is known, so a repaired
+    # item can never take a slot that a later row in the list already holds.
+    occupied = {kind: {r[2] for r in rows if r[0] == kind and len(r) >= 4
+                       and r[2] is not None} for kind in (2, 3)}
+    for out in pending:
+        pos = 0
+        while pos in occupied[out[0]]:
+            pos += 1
+        out[2] = pos
+        occupied[out[0]].add(pos)
     return rows
 
 

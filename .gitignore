@@ -2,6 +2,44 @@
 # the chosen download source, set in the launcher - a preference, not part of the app
 lpo/download-settings.json
 
+# the publisher's Flash browser - the launcher downloads it, it is not ours to ship
+/browser/
+
+# game clients - downloaded on demand as separate packs, never part of the source
+/cloud/LP1/
+/cloud/LP2/
+/cloud/LP3/
+/lpo/game/
+# the LPO client when it is unpacked straight into lpo/ (names from lpo/client_files.txt)
+/lpo/*.swf
+/lpo/*.cxd
+/lpo/*.exe
+/lpo/*.ico
+/lpo/index.html
+/lpo/settings.txt
+/lpo/settings_bk.txt
+/lpo/version.txt
+/lpo/webversion.txt
+/lpo/booksInfo/
+/lpo/lib/
+/lpo/queGraphic/
+/lpo/voc/
+/lpo/voe/
+/lpo/vop/
+
+# this machine's players and runtime state - personal data, logs and caches
+/lpo/accounts.json
+/lpo/accounts.json.tmp
+/lpo/notices.json
+/lpo/notice_content/
+/lpo/game_dir.txt
+/lpo/python-deps/
+/lpo/web/avatars/*
+!/lpo/web/avatars/default.png
+/logs/
+*.log
+__pycache__/
+
 # 星願思語 (LP4): downloaded from the publisher by the portal / lpo/fetch_lp4.py
 /lp4/
 
