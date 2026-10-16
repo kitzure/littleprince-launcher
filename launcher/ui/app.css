@@ -50,7 +50,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @keyframes twinkle { 0%, 100% { opacity: .2; transform: scale(.6); } 50% { opacity: 1; transform: scale(1); } }
 
 /* ── layout ────────────────────────────────────────────────────────────── */
-.app { position: relative; display: grid; grid-template-columns: 268px 1fr; gap: 22px;
+.app { position: relative; display: grid; grid-template-columns: 268px minmax(0, 1fr); gap: 22px;
        height: calc(100% - 118px); padding: 22px 26px 0; }
 
 /* ── the game list ─────────────────────────────────────────────────────── */
@@ -85,7 +85,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .lang:hover { background: #eaf6ff; }
 
 /* ── the banner: the art in its own shape, the words below ─────────────── */
-.stage { display: flex; flex-direction: column; min-height: 0; }
+.stage { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .banner { flex: none; display: flex; flex-direction: column; border-radius: 30px; overflow: hidden;
           border: 6px solid #fff; background: var(--paper); box-shadow: 0 10px 0 rgba(31, 99, 168, .28), var(--shadow); }
 /* the window has a fixed size, and this box is the banners' own shape (650x330),
@@ -215,7 +215,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @keyframes slide { from { transform: translateX(30px); opacity: 0; } }
 
 @media (max-width: 1050px) {
-  .app { grid-template-columns: 220px 1fr; }
+  .app { grid-template-columns: 220px minmax(0, 1fr); }
   .caption h1 { font-size: 24px; }
   .play { min-width: 180px; font-size: 20px; }
   .buttons button span { display: none; }

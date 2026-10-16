@@ -346,6 +346,24 @@ class Launcher:
             if code in self.playing:
                 return                    # a second press while it is still getting ready
             self.playing.add(code)
+        if code == "LP5":
+            # the Android emulator, not the game browser: the game server sets it
+            # up (SDK, game files, local APK) and starts the game in one job
+            try:
+                status, body = self.game_api("POST", "reunion/play", b"{}", timeout=60)
+                try:
+                    reply = json.loads(body.decode("utf-8"))
+                except Exception:                                     # noqa: BLE001
+                    reply = {}
+                if reply.get("need_licences"):
+                    self.prompts.toast("info", "星夜重圓",
+                                       "Press Play in the launcher to accept the Android SDK licences.")
+                elif status >= 400 or reply.get("ok") is False:
+                    self.prompts.toast("error", "星夜重圓", reply.get("error") or "it did not start")
+            finally:
+                with self._play_lock:
+                    self.playing.discard(code)
+            return
         try:
             browser = {}
             getter = threading.Thread(target=lambda: browser.update(exe=self.ensure_browser()),

@@ -151,7 +151,9 @@
   $("play").addEventListener("click", function () {
     var g = current(); if (!g) { return; }
     var c = S.cloud[g.code] || {};
-    if (c.android) { return playAndroid(g, c); }
+    // 星夜重圓 runs in the Android emulator, never the game browser - even when
+    // Play is pressed before the first state poll has said so
+    if (c.android || g.code === "LP5") { return playAndroid(g, c); }
     // one press: the launcher downloads what is missing (game, browser) and opens it
     S.busy[g.code] = true; drawBanner();
     api("/api/play", { code: g.code }).then(function () {
@@ -169,8 +171,8 @@
         pollCloud();
       });
     }
-    if (!c.licences) { return licence(go); }
-    go();
+    if (c.licences === false) { return licence(go); }
+    go();                 // the server answers need_licences if they are still missing
   }
 
   // ── modal ────────────────────────────────────────────────────────────────
