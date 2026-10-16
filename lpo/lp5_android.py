@@ -386,18 +386,53 @@ def launch(port=None):
     # `adb shell` on this emulator can print its result and then never close, so
     # the start is fired with a short timeout and judged by whether the game's
     # process is up - waiting on the shell left the game running behind an error.
-    try:
-        _adb("shell", "am", "start", "-a", "android.intent.action.MAIN",
-             "-c", "android.intent.category.LAUNCHER", "-p", PACKAGE, timeout=20)
-    except subprocess.TimeoutExpired:
-        pass
-    deadline = time.time() + 60
-    while not _game_running():
-        if time.time() > deadline:
-            raise IOError("星夜重圓 did not start in Android")
-        time.sleep(2)
+    # Start the activity by name: right after a first boot and install, Android
+    # took a package-only launch intent and then never started the process.  Ask
+    # again every few seconds until the game's process is there.
+    # The game asks for these at its first start, one Android prompt each.  On
+    # this emulator they hold nothing personal (the phone ID is the emulator's
+    # own) and storage is how it reads its data, so grant them up front.
+    for perm in RUNTIME_PERMISSIONS:
+        try:
+            _adb("shell", "pm", "grant", PACKAGE, perm, timeout=15)
+        except Exception:                                             # noqa: BLE001
+            pass
+    activity = _launch_activity()
+    deadline = time.time() + 90
+    while True:
+        try:
+            _adb("shell", "am", "start", "-n", activity, timeout=20)
+        except subprocess.TimeoutExpired:
+            pass
+        for _ in range(5):
+            if _game_running():
+                break
+            time.sleep(2)
+        else:
+            if time.time() > deadline:
+                raise IOError("星夜重圓 did not start in Android")
+            continue
+        break
     log("started %s on %s" % (PACKAGE, SERIAL))
     _phase("Playing", 100)
+
+
+RUNTIME_PERMISSIONS = ("android.permission.READ_PHONE_STATE",
+                       "android.permission.READ_EXTERNAL_STORAGE",
+                       "android.permission.WRITE_EXTERNAL_STORAGE")
+
+
+def _launch_activity():
+    """The game's launcher activity, as Android resolves it (Unity's by default)."""
+    try:
+        out = _adb("shell", "cmd", "package", "resolve-activity", "--brief",
+                   "-c", "android.intent.category.LAUNCHER", PACKAGE, timeout=15)
+        last = out.strip().splitlines()[-1].strip()
+        if last.startswith(PACKAGE + "/"):
+            return last
+    except Exception:                                                 # noqa: BLE001
+        pass
+    return PACKAGE + "/com.unity3d.player.UnityPlayerActivity"
 
 
 def _game_running():
