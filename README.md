@@ -25,10 +25,14 @@ a launcher for a game created in 2006 which supports as below:
 
 ## The launcher window
 
-Unzip and run **Little Prince Launcher.exe** (or `Start.bat`), and answer Yes at
-Windows' administrator prompt. Python comes bundled - nothing else to install.
-Pick a game and press Play once: the launcher downloads the game and the
-publisher's game browser if they are missing, then opens the game.
+Unzip and run **Little Prince Launcher.exe**, and answer Yes at Windows'
+administrator prompt. Python comes bundled - nothing else to install. Pick a
+game and press Play once: the launcher downloads the game and the publisher's
+game browser if they are missing, then opens the game.
+
+The release keeps its top level short - the exe, `WebView2Loader.dll` (which
+the exe needs beside it), this README and the guide. Everything else, including
+the games it downloads, lives in `app\`.
 
 How it fits together:
 

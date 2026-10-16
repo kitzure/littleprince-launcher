@@ -5,15 +5,16 @@
 // only:
 //   1. asks Windows for administrator rights (the hosts redirect and port 80
 //      need them) - declining is allowed, the launcher then runs without them;
-//   2. starts the bundled Python (runtime\python\pythonw.exe, or one on PATH)
-//      running launcher_web.py on a free local port;
+//   2. starts the bundled Python (app\runtime\python\pythonw.exe, or one on
+//      PATH) running app\launcher_web.py on a free local port;
 //   3. shows that page in a window (WebView2), and
 //   4. on close asks the Python side to stop cleanly (hosts reverted, relay
 //      stopped) before it goes - a Windows job object makes sure it can never
 //      outlive the window even if this process is killed.
 //
-// The screens themselves are launcher\ui\*.html, served by Python, so they can be
-// edited without rebuilding this exe.
+// The screens themselves are app\launcher\ui\*.html, served by Python, so they can
+// be edited without rebuilding this exe.  In a source checkout (no app\ folder)
+// everything sits beside the exe instead.
 #![windows_subsystem = "windows"]
 
 use std::ffi::OsStr;
@@ -135,6 +136,17 @@ fn home() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("."))
 }
 
+/// Where the package is: app\ beside the exe in a release, or the exe's own
+/// folder in a source checkout.
+fn package(home: &Path) -> PathBuf {
+    let app = home.join("app");
+    if app.join("launcher_web.py").is_file() {
+        app
+    } else {
+        home.to_path_buf()
+    }
+}
+
 fn python(home: &Path) -> PathBuf {
     let bundled = home.join("runtime").join("python").join("pythonw.exe");
     if bundled.is_file() {
@@ -193,7 +205,7 @@ fn main() {
         return; // the elevated copy takes over
     }
 
-    let home = home();
+    let home = package(&home());
     let script = home.join("launcher_web.py");
     trace(&format!("home {} script exists {}", home.display(), script.is_file()));
     if !script.is_file() {

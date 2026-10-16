@@ -7,8 +7,12 @@
    a MinGW-w64 bin folder on PATH or in ~/.mingw64-winlibs/mingw64/bin (dlltool);
 2. fetches the official embeddable Python (same version as the one running this
    script) and the Pillow wheel for it, into tools/.cache/ (kept between builds);
-3. lays out DIR/littleprince-launcher/: every tracked file of the package (not
-   docs/, tools/ or the exe's sources), the exe, and runtime/python/;
+3. lays out DIR/littleprince-launcher/ - only what a player needs to see at the
+   top, everything else in app/:
+
+       Little Prince Launcher.exe, WebView2Loader.dll, README.md, GUIDE.md
+       app/   the package (not docs/, tools/, the exe's sources, Start.bat or
+              git's own files) and app/runtime/python/;
 4. zips it.
 
 Players unzip and run the exe - no Python install needed.
@@ -30,7 +34,8 @@ CACHE = REPO / "tools" / ".cache"
 APP = REPO / "launcher-app"
 EXE_NAME = "Little Prince Launcher.exe"
 SKIP_PREFIXES = ("docs/", "tools/", "launcher-app/")
-SKIP_FILES = ("banner.jpeg",)
+SKIP_FILES = ("banner.jpeg", "Start.bat", ".gitignore", ".gitattributes")
+TOP_FILES = ("README.md",)          # beside the exe; everything else goes in app/
 
 
 def fetch(url, dest):
@@ -113,8 +118,9 @@ def main():
     if root.exists():
         shutil.rmtree(root)
     root.mkdir(parents=True)
+    app = root / "app"
     for f in tracked_files():
-        target = root / f
+        target = (root if f in TOP_FILES else app) / f
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(REPO / f, target)
     shutil.copy2(exe, root / EXE_NAME)
@@ -123,7 +129,7 @@ def main():
     loader = webview2_loader()
     if loader:
         shutil.copy2(loader, root / "WebView2Loader.dll")
-    python_runtime(root / "runtime" / "python")
+    python_runtime(app / "runtime" / "python")
     if a.guide:
         shutil.copy2(a.guide, root / "GUIDE.md")
 
