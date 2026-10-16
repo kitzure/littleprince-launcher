@@ -28,6 +28,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use tauri::{RunEvent, WebviewUrl, WebviewWindowBuilder};
+use windows_sys::Win32::Graphics::Dwm::DwmSetWindowAttribute;
 use windows_sys::Win32::Storage::FileSystem::QueryDosDeviceW;
 use windows_sys::Win32::System::JobObjects::{
     AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
@@ -100,6 +101,21 @@ fn relaunch_elevated(args: &[String]) -> bool {
                       cwd.as_ptr(), SW_SHOWNORMAL)
     };
     rc as isize > 32
+}
+
+/// Windows 11 paints the title bar in the launcher's sky blue with white text,
+/// so the frame matches the window (older Windows keeps its own colours).
+fn color_title_bar(hwnd: *mut std::ffi::c_void) {
+    const BORDER: u32 = 34;
+    const CAPTION: u32 = 35;
+    const TEXT: u32 = 36;
+    let sky: u32 = 0x00F0_B04F;   // #4fb0f0 as 0x00BBGGRR
+    let white: u32 = 0x00FF_FFFF;
+    for (attr, value) in [(CAPTION, sky), (BORDER, sky), (TEXT, white)] {
+        unsafe {
+            DwmSetWindowAttribute(hwnd, attr, &value as *const u32 as *const _, 4);
+        }
+    }
 }
 
 fn free_port() -> u16 {
@@ -205,7 +221,7 @@ fn main() {
 
     let app = tauri::Builder::default()
         .setup(move |app| {
-            WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
+            let window = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                 .title(TITLE)
                 // a fixed size: the banner box is laid out for exactly this
                 .inner_size(1200.0, 700.0)
@@ -214,6 +230,9 @@ fn main() {
                 .center()
                 .initialization_script(&format!("window.__LP_PORT = {};", port))
                 .build()?;
+            if let Ok(hwnd) = window.hwnd() {
+                color_title_bar(hwnd.0 as _);
+            }
             Ok(())
         })
         .build(tauri::generate_context!());

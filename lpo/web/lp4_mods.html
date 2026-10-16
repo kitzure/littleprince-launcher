@@ -5,20 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mods - 星願思語</title>
 <style>
-  :root { --bg:#000; --fg:#fff; --dim:#8a8a8a; --line:#242424; --card:#0b0b0b; }
+  :root { --bg:#e3f3ff; --fg:#1d4e82; --dim:#5b82a8; --line:#cfe4f6; --card:#ffffff; --hi:#1f63a8;
+          --blue:#2f86d6; --blue-dark:#1f63a8; --gold:#f6b72c; }
   * { box-sizing:border-box; }
   html, body { margin:0; background:var(--bg); color:var(--fg);
                font:14px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; }
   a { color:var(--fg); }
-  header { position:sticky; top:0; z-index:5; background:#000; border-bottom:1px solid var(--line);
+  header { position:sticky; top:0; z-index:5; background:rgba(255,255,255,.94); border-bottom:1px solid var(--line);
            padding:14px 18px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
   h1 { font-size:15px; font-weight:600; margin:0; }
   .grow { flex:1 1 auto; }
   select, input, button { font:inherit; color:var(--fg); background:var(--card);
                           border:1px solid var(--line); border-radius:8px; padding:6px 9px; }
   button { cursor:pointer; }
-  button:hover { border-color:#777; }
-  button.primary { background:var(--fg); color:#000; border-color:var(--fg); font-weight:600; }
+  button:hover { border-color:#7fb6e6; }
+  button.primary { background:linear-gradient(180deg,#4aa6ec,var(--blue-dark)); color:#fff;
+                   border-color:#fff; font-weight:700; box-shadow:0 3px 0 rgba(20,70,130,.45); }
   .muted { color:var(--dim); }
   .hide { display:none; }
   main { max-width:1120px; margin:0 auto; padding:18px; }
@@ -32,7 +34,7 @@
   .row .t b { display:block; font-weight:500; font-size:13px; }
   .row .t span { display:block; color:var(--dim); font-size:11.5px; }
   .msg { font-size:12px; color:var(--dim); margin-left:8px; }
-  .msg.ok { color:#9dffb0; } .msg.err { color:#ff8080; }
+  .msg.ok { color:#23893a; } .msg.err { color:#c8452f; }
   .fields { display:flex; flex-wrap:wrap; gap:10px 18px; align-items:end; }
   .fields label { display:flex; flex-direction:column; gap:3px; font-size:11.5px; color:var(--dim); }
   .fields input { width:110px; }
@@ -41,9 +43,20 @@
   body.embed header { position:static; padding-top:0; }
   .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:6px 12px; }
   .grid label { display:flex; align-items:center; justify-content:space-between; gap:8px;
-                font-size:12.5px; color:#c9c9c9; }
+                font-size:12.5px; color:#2d5f90; }
   .grid input[type=number] { width:64px; padding:3px 6px; }
   .grid select { padding:3px 6px; }
+
+  /* storybook: the launcher's sky, white rounded cards, chunky blue buttons */
+  html, body { font-family:"Microsoft JhengHei UI","Microsoft JhengHei","Segoe UI",system-ui,sans-serif; }
+  body { background:linear-gradient(180deg,#bfe4fb 0%,#e3f3ff 40%,#f4faff 100%) fixed; }
+  body.embed { background:transparent; }
+  header { border-bottom:3px dashed var(--line) !important; box-shadow:0 2px 10px rgba(31,99,168,.08); }
+  .card { border:3px solid #fff !important; border-radius:18px !important;
+          box-shadow:0 4px 0 rgba(31,99,168,.12), 0 8px 20px rgba(31,99,168,.10); }
+  button { border-radius:999px !important; }
+  select, input { background:#fff !important; color:var(--fg) !important; border-color:var(--line) !important; }
+  h1, .card h3, h2 { color:var(--blue-dark); }
 </style>
 </head>
 <body>
