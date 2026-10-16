@@ -11,6 +11,7 @@ Usage: python3 server.py
 import base64
 import http.server
 import secrets
+import socket
 import socketserver
 import struct
 import threading
@@ -7962,8 +7963,17 @@ class LittlePrinceHandler(http.server.BaseHTTPRequestHandler):
             self.send_error(500, str(e))
 
 class ReusableTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
-    allow_reuse_address = True
+    # On Windows SO_REUSEADDR lets a second server bind a port another one is
+    # still serving, and requests then reach whichever answers - an old copy left
+    # running kept serving its old pages and saves.  Take the port exclusively
+    # there, so a busy port fails loudly instead.
+    allow_reuse_address = os.name != "nt"
     daemon_threads = True
+
+    def server_bind(self):
+        if os.name == "nt" and hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
 
 # ─── Main ────────────────────────────────────────────────────────────────────
 

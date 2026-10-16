@@ -301,7 +301,7 @@
 			var wrap = document.getElementById("dlwrap");
 			var fill = document.getElementById("dlfill");
 			var title = document.getElementById("dltitle");
-			var busy = [], bad = [], pct = 0;
+			var busy = [], bad = [], pct = 0, fetching = false;
 			for (var id in cards) {
 				var code = cards[id], one = state[code] || {};
 				if (one.downloading) {
@@ -310,6 +310,8 @@
 					if (one.phase === "unpack") { shown = t("unpacking"); }
 					else if (one.phase === "verify") { shown = t("verifying"); }
 					busy.push(code + " " + shown);
+					// the Android steps say what they are; only real downloads get 下載中
+					if (!one.android || /MB$/.test(one.phase || "")) { fetching = true; }
 					if ((one.percent || 0) > pct) { pct = one.percent || 0; }
 				}
 				if (one.error) { bad.push(code + ": " + one.error); }
@@ -335,7 +337,7 @@
 					fill.style.width = "100%";
 				} else if (busy.length) {
 					wrap.style.display = "block";
-					title.innerHTML = t("dl_head") + " &mdash; " + busy.join(" &middot; ");
+					title.innerHTML = (fetching ? t("dl_head") + " &mdash; " : "") + busy.join(" &middot; ");
 					fill.style.background = "#f0c96a";
 					fill.style.width = (pct < 1 ? 1 : pct) + "%";
 				} else {

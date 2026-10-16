@@ -383,9 +383,28 @@ def launch(port=None):
         short.unlink(missing_ok=True)
         log("copied the OBB")
     _phase("Starting 星夜重圓", 95)
-    _adb("shell", "monkey", "-p", PACKAGE, "-c", "android.intent.category.LAUNCHER", "1")
+    # `adb shell` on this emulator can print its result and then never close, so
+    # the start is fired with a short timeout and judged by whether the game's
+    # process is up - waiting on the shell left the game running behind an error.
+    try:
+        _adb("shell", "am", "start", "-a", "android.intent.action.MAIN",
+             "-c", "android.intent.category.LAUNCHER", "-p", PACKAGE, timeout=20)
+    except subprocess.TimeoutExpired:
+        pass
+    deadline = time.time() + 60
+    while not _game_running():
+        if time.time() > deadline:
+            raise IOError("星夜重圓 did not start in Android")
+        time.sleep(2)
     log("started %s on %s" % (PACKAGE, SERIAL))
     _phase("Playing", 100)
+
+
+def _game_running():
+    try:
+        return bool(_adb("shell", "pidof", PACKAGE, timeout=8).strip())
+    except Exception:                                                 # noqa: BLE001
+        return False
 
 
 def _run(job, port):

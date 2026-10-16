@@ -128,7 +128,12 @@ class Server:
             self.redirect_was_present = bool(srv.HOSTS_STATE.get('added')) and not before
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            # Windows: exclusive, or a second copy silently shares the port (see
+            # ReusableTCPServer in lpo/server.py)
+            if os.name == "nt" and hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+            else:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.bind(("0.0.0.0", self.port))
             sock.listen(8)
         except OSError as e:
