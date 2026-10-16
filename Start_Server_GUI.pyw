@@ -65,15 +65,39 @@ def is_admin():
         return False
 
 
+def real_path(path):
+    """`path` with a subst or mapped network drive letter swapped for what it
+    points to.  The elevated copy runs in the administrator's logon session,
+    which does not have those drive letters, so relaunching from one opened
+    nothing at all - the UAC prompt was answered and the window never came."""
+    path = os.path.abspath(path)
+    if os.name != "nt" or len(path) < 2 or path[1] != ":":
+        return path
+    try:
+        import ctypes
+        buf = ctypes.create_unicode_buffer(1024)
+        if ctypes.windll.kernel32.QueryDosDeviceW(path[:2], buf, len(buf)):
+            target = buf.value
+            if target.startswith("\\??\\") and len(target) > 4:        # subst X: -> C:\...
+                return os.path.join(target[4:].rstrip("\\") + "\\", path[3:])
+        size = ctypes.c_ulong(len(buf))
+        if ctypes.windll.mpr.WNetGetConnectionW(path[:2], buf, ctypes.byref(size)) == 0:
+            return buf.value.rstrip("\\") + path[2:]                    # \\server\share
+    except Exception:                                                 # noqa: BLE001
+        pass
+    return path
+
+
 def relaunch_as_admin():
     """Windows: restart this script elevated (UAC prompt)."""
     if os.name != "nt":
         return False
     try:
         import ctypes
-        params = " ".join('"%s"' % a for a in sys.argv)
+        args = [real_path(sys.argv[0])] + sys.argv[1:]
+        params = " ".join('"%s"' % a for a in args)
         rc = ctypes.windll.shell32.ShellExecuteW(
-            None, "runas", sys.executable, params, HERE, 1)
+            None, "runas", real_path(sys.executable), params, real_path(HERE), 1)
         return rc > 32
     except Exception:
         return False
