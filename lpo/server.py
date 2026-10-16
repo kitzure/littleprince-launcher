@@ -3128,15 +3128,15 @@ def player_card_games(prof: dict, prog: dict, acct: dict = None) -> list:
     return [
         {"game": "LP1", "title": "星願小王子", "stats": lp1,
          "note": "Stars are one 0-3 value per level; gems are the 8 counters the mini-games pay."},
+        {"game": "LP5", "title": "星夜重圓", "stats": lp5.account_stats(acct or {}),
+         "note": "星願小王子 on phones. The save tied to this account - sign in, bind (綁定帳號) "
+                 "or register in the game with this account's name and password."},
         {"game": "LP2", "title": "星願外傳", "stats": lp2,
          "note": "Gems and items are per-id amounts; the boss record and weapons are lists."},
         {"game": "LP3", "title": "星願歷奇", "stats": lp3,
          "note": "The totals the game's own header shows, plus the counters behind them."},
         {"game": "LP4", "title": "星願思語", "stats": lp4_stats(acct),
          "note": "Coins, the soldiers the battles unlocked, and the best score per mini-game."},
-        {"game": "LP5", "title": "星夜重圓", "stats": lp5.account_stats(acct or {}),
-         "note": "The 星夜重圓 save tied to this account - sign in on its Other's login "
-                 "with this account's name and password."},
         {"game": "LPO", "title": "小王子 Online", "stats": lpo,
          "note": "The MMO's player record - the same numbers the castle's HUD reads."},
     ]

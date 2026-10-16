@@ -238,6 +238,11 @@ def php(name, f):
 
     if name == "ItemManagement.php" and f.get("method") in ("GetItemFunction", "GetShopItem"):
         return _table(f["method"])[1]                 # catalogue reads carry no account
+    if name == "getRankData.php":
+        # The leaderboards send only rankType (and the game for 遊戲排名) - no
+        # accId - so behind the account check below they always got "no account"
+        # and sat on 等待中 for ever.  They list every account anyway.
+        return _ranks(f)
 
     acct = _by_uid(f.get("accId") or f.get("uid"))
     if acct is None:
@@ -270,8 +275,6 @@ def php(name, f):
                      ("highest_score", max(scores)),
                      ("average_score", sum(scores) // len(scores)),
                      ("average_c_count", sum(correct) // len(correct))])
-    if name == "getRankData.php":
-        return _ranks(f)
     if name in ("createSavedata.php", "doCreateXMPPlayer.php", "uploadSlideStrokeData.php"):
         return "success"
     if name in ("downloadSlide.php", "downloadStroke.php", "getWordDef.php"):

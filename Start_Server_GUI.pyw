@@ -623,7 +623,7 @@ TR = {
     },
 }
 
-GAME_CODES = ("LP1", "LP2", "LP3", "LP4", "LP5", "LPO")
+GAME_CODES = ("LP1", "LP5", "LP2", "LP3", "LP4", "LPO")   # LP5 is LP1 on phones
 
 
 def profile_path():
