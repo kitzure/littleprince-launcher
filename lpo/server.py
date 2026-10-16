@@ -5492,7 +5492,7 @@ def cloud_login_reply(raw_body: bytes, target: str = "") -> bytes:
             # (made on the accounts page) before any game will log in.
             log.info(f"  cloud login: '{name}' is not an account made on the accounts page"
                      " - refused")
-            return login_fail_reply(target)
+            return cloud_login_fail_reply()
         email = accounts.normalize(acct.get("email"))
         profile = acct.get("profile") or {}
         log.info(f"  cloud login: '{name}' -> {email} - serving that profile")
@@ -5742,26 +5742,31 @@ def merge_maze_reply(raw_body: bytes, reply: bytes) -> bytes:
     return amf0.encode(answers)
 
 
-def login_fail_reply(service: str = "") -> bytes:
-    """The answer to a login whose name has no account on this machine.
-
-    The client knows `loginFail` (lib.swf lists it next to `loginSuccess`) and
-    routes answers by response name, so no profile is ever served for a name that
-    was not created on the accounts page.
-    """
+def cloud_login_fail_reply() -> bytes:
+    """LP1/LP2/LP3's refusal, unchanged: those clients read the text fields."""
     log.info("  login -> loginFail (no account, guest logins are off)")
-    # The client's login handler (lib.swf) names `info` next to `MSGalert` and
-    # `loginFail`, so the alert text is read off that field - an "error" field alone
-    # left the user staring at a form that looked like it was still logging in.
     msg = "沒有這個帳號，請先到帳號頁面註冊。"
+    return amf0.encode([amf0.AmfObject({
+        "response": "loginFail", "result": False, "info": msg, "msg": msg,
+        "message": msg, "error": msg, "alert": msg,
+    })])
+
+
+def login_fail_reply(service: str = "", reason: str = "idError") -> bytes:
+    """The answer to a refused login: `reason` is "idError" or "pwError".
+
+    lib.swf's RemoteService.serviceResponse hands a `loginFail`'s `message` to
+    FlowCtrl.contentReceviceRecord -> Login.receviceRecord, which keeps it as
+    `result` and goes to the form's "edit" frame.  Login.edit then plays the red
+    notice under the email box for "idError" (errID "a3") or under the password
+    box for "pwError" (errPW "a2").  Any other text - the sentence this used to
+    send - matched neither, so the form came back with no message at all.
+    """
+    log.info("  login -> loginFail (%s)" % reason)
     return amf0.encode([amf0.AmfObject({
         "response": "loginFail",
         "result": False,
-        "info": msg,
-        "msg": msg,
-        "message": msg,
-        "error": msg,
-        "alert": msg,
+        "message": reason,
     })])
 
 
@@ -5781,13 +5786,19 @@ def serve_captured(service: str, body: bytes, raw_body: bytes = b"") -> bytes:
         return maze_reply(CURRENT_PLAYER.get("profile"))
     if "login" not in service:
         return render_body(service, body)
-    email, _password = login_credentials(raw_body)
+    email, password = login_credentials(raw_body)
     if email:
         acct = resolve_login_account(email)
+        if acct and not accounts.verify(acct["email"], password or "", touch=False):
+            # The right account, the wrong password: the game shows its red notice
+            # under the password box, as the official server's answer made it do.
+            log.info(f"  login: '{email}' - wrong password, refused")
+            CURRENT_PLAYER["email"] = ""
+            CURRENT_PLAYER["profile"] = None
+            return login_fail_reply(service, "pwError")
         if acct:
             log.info(f"  login: '{email}' ok (uid {acct['uid']}, "
-                     f"name {acct.get('profile', {}).get('name')!r}) - serving that account"
-                     " [password not checked: this is the local mirror]")
+                     f"name {acct.get('profile', {}).get('name')!r}) - serving that account")
             prof = dict(acct.get("profile") or {})
             # The LP1 lesson, for the online client: a save lands in the account's
             # `progress` (persist_player_update, set_progress, the Mods panel) while

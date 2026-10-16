@@ -28,12 +28,17 @@ import subprocess
 import tempfile
 import threading
 import time
+import urllib.parse
 import urllib.request
 import zipfile
 from pathlib import Path
 
 import lp5
 import lp5_apk
+try:
+    from fetch_client import resolve_base
+except Exception:                                                     # noqa: BLE001
+    resolve_base = None
 
 HERE = Path(__file__).resolve().parent
 ROOT = lp5.ROOT
@@ -170,7 +175,17 @@ def _download(url, target, label, lo, hi, sha1=None, timeout=120):
     """Fetch `url` into `target` (via .part), reporting lo..hi percent."""
     target.parent.mkdir(parents=True, exist_ok=True)
     part = target.with_name(target.name + ".part")
-    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    headers = {"User-Agent": UA}
+    # With the hosts redirect on, the publisher's name points at this PC and the
+    # "download" was the local server's own page - "File is not a zip file".
+    # Fetch from the real address instead, keeping the Host header.
+    if resolve_base:
+        split = urllib.parse.urlsplit(url)
+        base, host = resolve_base("%s://%s/" % (split.scheme, split.netloc), log=log)
+        if host:
+            url = base.rstrip("/") + split.path + ("?" + split.query if split.query else "")
+            headers["Host"] = host
+    req = urllib.request.Request(url, headers=headers)
     digest = hashlib.sha1()
     with urllib.request.urlopen(req, timeout=timeout) as r, open(part, "wb") as fh:
         total = int(r.headers.get("Content-Length") or 0)
@@ -189,6 +204,9 @@ def _download(url, target, label, lo, hi, sha1=None, timeout=120):
         raise IOError("%s: only %d of %d bytes arrived" % (label, got, total))
     if sha1 and digest.hexdigest() != sha1:
         raise IOError("%s: checksum does not match Google's index" % label)
+    if target.suffix.lower() in (".zip", ".apk") and not zipfile.is_zipfile(str(part)):
+        part.unlink(missing_ok=True)
+        raise IOError("%s: the server sent something that is not the file (%s)" % (label, url))
     part.replace(target)
 
 
@@ -227,14 +245,19 @@ def _sdk_install(packages, lo, hi):
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             stdin=subprocess.DEVNULL, creationflags=NO_WINDOW,
                             env=dict(os.environ, NO_COLOR="1"))
-    step = 0
+    step, tail = 0, []
     for raw in iter(proc.stdout.readline, b""):
         line = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", raw.decode("utf-8", "replace")).strip()
         if line:
             step += 1
+            tail = (tail + [line])[-6:]
             _phase("Installing the Android SDK: " + line[:70], min(hi - 1, lo + step))
     if proc.wait():
-        raise IOError("android sdk install failed (exit %d)" % proc.returncode)
+        # "exit 1" alone said nothing: keep the installer's last words
+        for line in tail:
+            log("  android: " + line)
+        raise IOError("android sdk install failed (exit %d): %s"
+                      % (proc.returncode, tail[-1][:160] if tail else "no output"))
 
 
 def _write_avd():
@@ -298,6 +321,7 @@ def setup(port=None):
                             ("system-images/android-28/default/x86", have["system_image"]))
             if not ok]
     if need:
+        log("not found under %s: %s" % (SDK, ", ".join(need)))
         _sdk_install(need, 16, 55)
     if not parts(port)["avd"]:
         _phase("Creating the Android 9 device", 56)
