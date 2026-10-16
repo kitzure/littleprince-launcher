@@ -1,4 +1,4 @@
-LITTLE PRINCE LAUNCHER — WINDOWS v1.1
+LITTLE PRINCE LAUNCHER — WINDOWS v1.2
 Setup, how it works and support guide
 
 Website: https://kitzure.github.io/littleprince-launcher/
@@ -7,18 +7,18 @@ Repository: https://github.com/kitzure/littleprince-launcher
 QUICK START
 1. Download the Windows ZIP and extract it into a new writable folder.
    Do not launch it inside the ZIP.
-2. Install Python 3 with Tkinter if needed, using the standard Windows
-   installer from https://www.python.org/downloads/windows/.
-   Enable its Python/PATH options.
-3. Double-click Start.bat. Accept the administrator prompt for the
-   hosts redirect and port-80 service.
-4. Choose a game and press Play. Allow the local portal to download
-   the Flash-capable game browser and missing game files when prompted.
-5. Create a local account through the launcher's Accounts site, use it
-   in the game, and keep the launcher open. Close the window normally
-   when finished.
+2. Double-click Little Prince Launcher.exe. Accept the administrator
+   prompt for the hosts redirect and port-80 service. Python is
+   bundled; nothing else needs installing.
+3. Choose a game and press Play once. A missing game or game browser
+   is downloaded first (one progress bar), then the game opens.
+   星夜重圓 asks once for Google's Android SDK licence, then sets up
+   its emulator and starts.
+4. Create a local account under Accounts at the bottom of the
+   launcher window, use it in the game, and keep the launcher open.
+   Close the window normally when finished.
 For original CD installations, back up the original files first and
-use the launcher's patch-files menu for the supplied patches.
+use the supplied patches in the launcher's app\patches folder.
 
 SUPPORTED TITLES
 - LP1: Little Prince
@@ -47,12 +47,13 @@ client behavior for this local setup.
 Normal settings answer unknown services locally rather than sending
 them to the publisher. Game/browser downloads still use the internet.
 Normal shutdown stops services and removes the added hosts entries.
-After a forced termination, use Revert the hosts redirect.
+After a forced termination, use Revert hosts in the server menu.
 
 LOCAL FEATURES
 - Local accounts, profiles and available worlds.
 - Supported progress saves and per-title leaderboards.
 - Friends/mail between local accounts, and an editable notice board.
+- Accounts and Mods open inside the launcher window.
 - Per-game mod presets/fields, normally applied at the next login.
 - Server status and request logs.
 - Lobby/room handling; full multiplayer behavior is not guaranteed.
@@ -60,14 +61,15 @@ These are local records, not the publisher's or a school's accounts.
 
 REQUIREMENTS
 - Windows desktop/laptop; no guarantee for old Windows or ARM/emulation.
-- Python 3 with Tkinter; Python is not bundled in the ZIP.
+- Nothing to install: Python is bundled in app\runtime. The window
+  uses the Edge WebView2 Runtime built into Windows 11 / current 10.
 - Administrator rights for hosts redirection and port 80.
 - Free local ports and a writable installation folder.
 - Internet and additional disk space for missing browser/game files.
   The launcher ZIP is not the complete game collection; individual
   downloads can be hundreds of megabytes.
 - Starwish Reunion: hardware virtualization (Windows Hypervisor
-  Platform) and about 2 GB for the Android emulator and the game.
+  Platform) and about 5 GB for the Android emulator and the game.
 - Game copies you legally own. No official key/subscription is supplied.
 
 DATA AND SAFETY
@@ -93,19 +95,23 @@ LIMITATIONS
 - This project is not affiliated with the original publisher.
 
 TROUBLESHOOTING
-Python missing: install the standard Windows Python build and enable
-its PATH options. Check Tkinter with: python -m tkinter
-Admin prompt cancelled: rerun Start.bat and accept the prompt for the
+SmartScreen warning: the exe is not code-signed. Check the checksum
+below, then choose More info, Run anyway.
+Window does not open: unzip the whole folder (the exe needs
+WebView2Loader.dll and app\ beside it); on older Windows 10 install
+the Edge WebView2 Runtime. See %TEMP%\littleprince-launcher.log.
+Admin prompt cancelled: reopen the exe and accept the prompt for the
 full hosts/CD setup; port 80 and redirects may fail without elevation.
 Port conflict: close other launchers/apps using that port. Read the log.
-Advanced local testing: python Start_Server_GUI.pyw --no-hosts --port 18080
+Advanced local testing (source checkout, Python 3 with Tkinter):
+python Start_Server_GUI.pyw --no-hosts --port 18080
 That test command does not enable the normal CD hostname redirect.
 Official site opens: keep the launcher running, verify hosts redirect,
 and use the game browser. DNS-over-HTTPS can bypass the redirect.
 Download failure: check network, disk and logs; select a permitted
 mirror or trusted self-hosted pack. A launcher mirror is not a
 replacement for a broken individual game-pack URL.
-Redirect remains after a crash: use Revert the hosts redirect. Back up
+Redirect remains after a crash: use Revert hosts. Back up
 the hosts file before manual edits.
 Mod missing: check the title/account, then log out and enter the game
 again. Changes are normally sent by the local server at login.
@@ -113,17 +119,17 @@ Report unresolved issues at the repository's Issues page. Remove
 personal details and passwords from log excerpts before posting.
 
 DOWNLOAD AND INTEGRITY
-Version: Windows v1.1
-Filename: littleprince-launcher-v1.1.zip
-Size: 12,619,580 bytes (about 12.6 MB)
+Version: Windows v1.2
+Filename: littleprince-launcher-v1.2.zip
+Size: 34,204,240 bytes (about 34.2 MB)
 Primary:
-https://github.com/kitzure/littleprince-launcher/releases/download/v1.1/littleprince-launcher-v1.1.zip
+https://github.com/kitzure/littleprince-launcher/releases/download/v1.2/littleprince-launcher-v1.2.zip
 Older versions:
 https://github.com/kitzure/littleprince-launcher/releases
 SHA-256:
-220fa1da54764628afe84d88fe16b27d22202764136bb98ab32943da191e8aae
+8bbce81be3581253b5543f4da0f0edff91bfc842b10c7634278668ecc139b216
 PowerShell check:
-Get-FileHash .\littleprince-launcher-v1.1.zip -Algorithm SHA256
+Get-FileHash .\littleprince-launcher-v1.2.zip -Algorithm SHA256
 
 RIGHTS AND OWNERSHIP
 An unofficial educational/preservation project. Original games,

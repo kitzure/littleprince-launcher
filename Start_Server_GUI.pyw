@@ -46,7 +46,7 @@ from lpo.pack_download import clean_download_settings, validate_pack_url, open_p
 from lpo import avatar_support
 
 APP_TITLE = "Little Prince Launcher — server"
-VERSION = "1.1"
+VERSION = "1.2"
 
 
 def _messagebox():

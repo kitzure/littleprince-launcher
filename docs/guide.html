@@ -23,7 +23,7 @@
   <main id="main" class="guide-main">
     <div class="guide-warning" role="alert"><strong>THIS LAUNCHER IS FREE. DO NOT PAY FOR IT.</strong></div>
     <div class="guide-intro">
-      <span class="eyebrow">WINDOWS v1.1 / SETUP & SUPPORT</span>
+      <span class="eyebrow">WINDOWS v1.2 / SETUP & SUPPORT</span>
       <h1>A small guide to<br>getting started.</h1>
       <p>What to install, what you can play, and what happens behind the launcher window. No guesswork about official servers or unsupported platforms.</p>
       <div class="guide-actions"><a class="small-button" href="launcher-guide.txt" download>Download this guide <span aria-hidden="true">↓</span></a><button class="small-button quiet" type="button" data-print>Print / save as PDF</button><a class="small-button quiet" href="./">Back to download <span aria-hidden="true">↗</span></a></div>
@@ -39,12 +39,11 @@
           <h2>01 / Quick start</h2>
           <ol>
             <li><strong>Download the Windows ZIP.</strong> Extract it into a new folder you can write to. Do not run the launcher inside the ZIP.</li>
-            <li><strong>Install Python 3 with Tkinter</strong> from <a href="https://www.python.org/downloads/windows/" target="_blank" rel="noopener noreferrer">python.org</a> if needed. Use the standard Windows installer and enable its Python/PATH options.</li>
-            <li><strong>Double-click <code>Start.bat</code>.</strong> Accept the administrator prompt so the launcher can set up the local hosts redirect and its port-80 server.</li>
-            <li><strong>Choose a game and press Play.</strong> The local portal opens. Let it download the publisher's Flash-capable browser and any missing game files when prompted.</li>
-            <li><strong>Create a local account</strong> through the launcher's Accounts site, then use that account in the game. Keep the launcher open while playing; close it normally when finished.</li>
+            <li><strong>Double-click <code>Little Prince Launcher.exe</code>.</strong> Accept the administrator prompt so the launcher can set up the local hosts redirect and its port-80 server. Python comes bundled in the ZIP; there is nothing else to install.</li>
+            <li><strong>Choose a game and press Play once.</strong> If the game or the publisher's Flash-capable browser is missing, the launcher downloads it, shows one progress bar, then opens the game. 星夜重圓 asks once for Google's Android SDK licence, then sets up its emulator and starts.</li>
+            <li><strong>Create a local account</strong> under <strong>Accounts</strong> at the bottom of the launcher window, then use that account in the game. Keep the launcher open while playing; close it normally when finished.</li>
           </ol>
-          <p>Using an original CD installation instead? Back up its files first and use the launcher's patch-files menu for the supplied patches. This is separate from downloading a game through the portal.</p>
+          <p>Using an original CD installation instead? Back up its files first, then use the supplied patches in the launcher's <code>app\patches</code> folder. This is separate from downloading a game through the portal.</p>
         </section>
 
         <section id="supported-games">
@@ -55,7 +54,7 @@
           <div class="support-game" id="lp3"><span class="game-code">LP3</span><div><h3>Prince Adventure</h3><p>Local accounts/progress, title-specific presets such as card unlocks, and CD-version patches.</p></div></div>
           <div class="support-game" id="lpo"><span class="game-code">LPO</span><div><h3>Little Prince Online</h3><p>A local replacement server, account management, worlds, saves, local friends/mail and leaderboards. Lobby/room handling is included; full multiplayer behavior is not guaranteed.</p></div></div>
           <div class="support-game" id="lp4"><span class="game-code">LP4</span><div><h3>星願思語 · 星空聯盟</h3><p>New in v1.1. The publisher's web build, opened from its own portal card. Its textures, music, question banks and battle data are downloaded from the publisher the first time you play; login, saves, high scores, the shop and ranks run on the local server, and new players get the full licence (all difficulty levels). Plays in the publisher's Flash browser.</p></div></div>
-          <div class="support-game" id="lp5"><span class="game-code">LP5</span><div><h3>星夜重圓 Starwish Reunion</h3><p>New in v1.1. The publisher's Android app, run on this PC: its portal card sets up a local Android emulator (Google's SDK, after you accept its licence), builds a patched APK from the publisher's own copy and serves the game's accounts, progress and level downloads locally. A Reunion mods page edits unlocked games, levels, ranks, gold, stones and stamina. For phones, see the <a href="#android">Android APK</a>.</p></div></div>
+          <div class="support-game" id="lp5"><span class="game-code">LP5</span><div><h3>星夜重圓 Starwish Reunion</h3><p>New in v1.1. The publisher's Android app, run on this PC: pressing Play sets up a local Android emulator (Google's SDK, after you accept its licence), builds a patched APK from the publisher's own copy and serves the game's accounts, progress and level downloads locally. A Reunion mods page edits unlocked games, levels, ranks, gold, stones and stamina. For phones, see the <a href="#android">Android APK</a>.</p></div></div>
           <div class="document-note"><p><strong>Not included:</strong> the newer Starwish Party app, LP4's classroom/teacher mode, official account synchronization, and macOS/Linux/mobile launcher builds. The website's modern artwork is a presentation choice, not support for the newer app.</p></div>
         </section>
 
@@ -70,16 +69,16 @@
           </ul>
           <p>Local services handle the implemented login, progress, mail, friends and ranking requests. Supplied patches adapt the classic clients' license checks and selected client behavior for this local setup.</p>
           <p>Normal launch settings answer unknown services locally instead of forwarding them to the publisher. Missing game/browser downloads still use the internet. This is <strong>not</strong> the publisher's official live service.</p>
-          <p>On a normal shutdown, the launcher stops its services and removes the hosts entries it added. If it was force-closed, use its <strong>Revert the hosts redirect</strong> command.</p>
+          <p>On a normal shutdown, the launcher stops its services and removes the hosts entries it added. If it was force-closed, use <strong>Revert hosts</strong> in its server menu.</p>
         </section>
 
         <section id="local-tools">
           <h2>04 / Local tools</h2>
           <ul>
-            <li><strong>Accounts:</strong> create and manage local players, profiles and available worlds.</li>
+            <li><strong>Accounts:</strong> create and manage local players, profiles and available worlds, inside the launcher window.</li>
             <li><strong>Saves and rankings:</strong> record the supported progress/score fields, with scores separated by title.</li>
             <li><strong>Friends, mail and notice board:</strong> use local accounts and edit the castle's notice board.</li>
-            <li><strong>Mods:</strong> choose the game first, then apply its supported presets or fields. Changes normally appear at the next game login.</li>
+            <li><strong>Mods:</strong> also inside the launcher window. Choose the game first, then apply its supported presets or fields. Changes normally appear at the next game login.</li>
             <li><strong>Status and logs:</strong> inspect running services and request messages in the launcher.</li>
           </ul>
           <p>These are features of your local installation. They do not import a school's or the publisher's existing account history.</p>
@@ -89,10 +88,11 @@
           <h2>05 / Requirements</h2>
           <dl class="requirement-list">
             <div><dt>Computer</dt><dd>A Windows desktop or laptop. Use a current Windows installation; compatibility with old Windows releases or ARM/emulation is not guaranteed.</dd></div>
-            <div><dt>Python</dt><dd>Python 3 with Tkinter. It is not bundled in the launcher ZIP. The normal python.org Windows installation includes Tkinter.</dd></div>
+            <div><dt>Python</dt><dd>Bundled. The ZIP carries its own Python runtime in <code>app\runtime</code>; an installed Python is not needed.</dd></div>
+            <div><dt>Window</dt><dd>Microsoft Edge WebView2 Runtime, which Windows 11 and current Windows 10 already include.</dd></div>
             <div><dt>Permissions</dt><dd>Administrator rights for the hosts redirect and port-80 service. Free local ports are needed for the services above.</dd></div>
-            <div><dt>Starwish Reunion</dt><dd>Hardware virtualization (Windows Hypervisor Platform) for the Android emulator, and about 2 GB for the emulator, its Android 9 system image and the game.</dd></div>
-            <div><dt>Downloads</dt><dd>Internet access for missing browser/game files. The small launcher ZIP is not the full game collection; individual client downloads may be hundreds of megabytes.</dd></div>
+            <div><dt>Starwish Reunion</dt><dd>Hardware virtualization (Windows Hypervisor Platform) for the Android emulator, and about 5 GB for the emulator, its Android 9 system image, the emulated phone and the game.</dd></div>
+            <div><dt>Downloads</dt><dd>Internet access for missing browser/game files. The launcher ZIP is not the full game collection; individual client downloads may be hundreds of megabytes.</dd></div>
             <div><dt>Storage</dt><dd>A writable folder with space for the launcher, downloaded clients and saves. Keep backups before replacing a game or launcher folder.</dd></div>
             <div><dt>Game ownership</dt><dd>Use only copies you legally own. No official serial key, subscription or publisher account is supplied.</dd></div>
           </dl>
@@ -120,23 +120,24 @@
 
         <section id="troubleshooting">
           <h2>08 / Troubleshooting</h2>
-          <details class="faq"><summary>Start.bat says Python is missing</summary><p>Install Python from python.org using the standard Windows installer. Enable the Python/PATH options, then reopen the launcher. You can check that Tkinter is present with <code>python -m tkinter</code>.</p></details>
-          <details class="faq"><summary>The administrator prompt is cancelled</summary><p>Rerun <code>Start.bat</code> and accept the prompt if you want the full hosts/CD setup. Without elevation, port 80 and the hosts redirect may not work.</p></details>
-          <details class="faq"><summary>A server port is already in use</summary><p>Close a second launcher instance or another application using the same port. Check the log for the exact port. Advanced testing can use <code>python Start_Server_GUI.pyw --no-hosts --port 18080</code>, but that does not enable the CD games' normal hostname redirect.</p></details>
+          <details class="faq"><summary>Windows says it protected your PC</summary><p>The launcher is not code-signed, so SmartScreen may warn about it. Check the ZIP's checksum below, then choose <strong>More info → Run anyway</strong>.</p></details>
+          <details class="faq"><summary>The launcher window does not open</summary><p>Unzip the whole folder: the exe needs <code>WebView2Loader.dll</code> and the <code>app</code> folder beside it. On older Windows 10, install Microsoft's Edge WebView2 Runtime. Startup problems are written to <code>%TEMP%\littleprince-launcher.log</code>.</p></details>
+          <details class="faq"><summary>The administrator prompt is cancelled</summary><p>Reopen <code>Little Prince Launcher.exe</code> and accept the prompt if you want the full hosts/CD setup. Without elevation, port 80 and the hosts redirect may not work.</p></details>
+          <details class="faq"><summary>A server port is already in use</summary><p>Close a second launcher instance or another application using the same port. Check the log for the exact port. From a source checkout with Python 3 and Tkinter, advanced testing can use <code>python Start_Server_GUI.pyw --no-hosts --port 18080</code>, but that does not enable the CD games' normal hostname redirect.</p></details>
           <details class="faq"><summary>The game opens the official website instead</summary><p>Keep the launcher running and check that its hosts redirect is active. Use the offered game browser. A browser's DNS-over-HTTPS setting may bypass the local redirect; disable it for this setup if necessary.</p></details>
           <details class="faq"><summary>The game download fails</summary><p>Check your connection, free disk space and the launcher log. Try a permitted mirror or a trusted self-hosted pack URL through download settings. Changing the launcher download mirror does not replace a broken individual game pack.</p></details>
-          <details class="faq"><summary>Game domains still point to localhost after closing</summary><p>Reopen the launcher and use <strong>Revert the hosts redirect</strong>. A crash, forced termination or power loss can prevent normal cleanup. Back up the hosts file before making any manual changes.</p></details>
+          <details class="faq"><summary>Game domains still point to localhost after closing</summary><p>Reopen the launcher and use <strong>Revert hosts</strong> in its server menu (bottom right). A crash, forced termination or power loss can prevent normal cleanup. Back up the hosts file before making any manual changes.</p></details>
           <details class="faq"><summary>A mod value does not appear in the game</summary><p>Confirm the selected title and account, then log out and re-enter that game. Mod changes are returned by the local server on login, not necessarily applied to a running session.</p></details>
           <p>For unresolved problems, describe the game, the steps and the relevant log excerpt in <a href="https://github.com/kitzure/littleprince-launcher/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>. Remove account details, passwords and personal file paths first.</p>
         </section>
 
         <section id="downloads">
           <h2>09 / Download details</h2>
-          <p><strong>Windows v1.1:</strong> <code>littleprince-launcher-v1.1.zip</code> · 12.6 MB, attached to the GitHub release. Earlier versions stay on the releases page.</p>
-          <div class="link-row"><a data-download href="https://github.com/kitzure/littleprince-launcher/releases/download/v1.1/littleprince-launcher-v1.1.zip">Download Windows ZIP ↓</a><a href="https://github.com/kitzure/littleprince-launcher/releases/tag/v1.1">Release notes ↗</a><a href="https://github.com/kitzure/littleprince-launcher/releases">All releases ↗</a></div>
-          <div class="checksum"><small>SHA-256 · WINDOWS v1.1</small><code id="sha256">220fa1da54764628afe84d88fe16b27d22202764136bb98ab32943da191e8aae</code><button type="button" data-copy-checksum aria-live="polite">Copy checksum</button></div>
-          <p>Optional integrity check in PowerShell: <code>Get-FileHash .\littleprince-launcher-v1.1.zip -Algorithm SHA256</code>. Compare the result with the value above. See also the <a href="checksums.txt" download>checksum text file</a>.</p>
-          <p>Website source and the launcher files are in the <a href="https://github.com/kitzure/littleprince-launcher" target="_blank" rel="noopener noreferrer">GitHub repository</a>. This guide covers the Windows v1.1 download linked here.</p>
+          <p><strong>Windows v1.2:</strong> <code>littleprince-launcher-v1.2.zip</code> · 34.2 MB (Python included), attached to the GitHub release. Earlier versions stay on the releases page.</p>
+          <div class="link-row"><a data-download href="https://github.com/kitzure/littleprince-launcher/releases/download/v1.2/littleprince-launcher-v1.2.zip">Download Windows ZIP ↓</a><a href="https://github.com/kitzure/littleprince-launcher/releases/tag/v1.2">Release notes ↗</a><a href="https://github.com/kitzure/littleprince-launcher/releases">All releases ↗</a></div>
+          <div class="checksum"><small>SHA-256 · WINDOWS v1.2</small><code id="sha256">8bbce81be3581253b5543f4da0f0edff91bfc842b10c7634278668ecc139b216</code><button type="button" data-copy-checksum aria-live="polite">Copy checksum</button></div>
+          <p>Optional integrity check in PowerShell: <code>Get-FileHash .\littleprince-launcher-v1.2.zip -Algorithm SHA256</code>. Compare the result with the value above. See also the <a href="checksums.txt" download>checksum text file</a>.</p>
+          <p>Website source and the launcher files are in the <a href="https://github.com/kitzure/littleprince-launcher" target="_blank" rel="noopener noreferrer">GitHub repository</a>. This guide covers the Windows v1.2 download linked here.</p>
         </section>
 
         <section id="android">

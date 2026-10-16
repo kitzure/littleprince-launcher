@@ -1,2 +1,2 @@
-220fa1da54764628afe84d88fe16b27d22202764136bb98ab32943da191e8aae  littleprince-launcher-v1.1.zip
+8bbce81be3581253b5543f4da0f0edff91bfc842b10c7634278668ecc139b216  littleprince-launcher-v1.2.zip
 05451a0ebd7a22cf2bafb36f7c29ee9a65b83f816e64926c9edcdf8fd2531ca0  StarwishReunion-1.13.0-android10-fix.apk

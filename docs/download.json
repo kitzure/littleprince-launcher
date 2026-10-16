@@ -1,12 +1,12 @@
 {
-  "version": "v1.1",
+  "version": "v1.2",
   "platform": "Windows",
-  "filename": "littleprince-launcher-v1.1.zip",
-  "url": "https://github.com/kitzure/littleprince-launcher/releases/download/v1.1/littleprince-launcher-v1.1.zip",
+  "filename": "littleprince-launcher-v1.2.zip",
+  "url": "https://github.com/kitzure/littleprince-launcher/releases/download/v1.2/littleprince-launcher-v1.2.zip",
   "backup_url": "",
-  "size_bytes": 12619580,
-  "sha256": "220fa1da54764628afe84d88fe16b27d22202764136bb98ab32943da191e8aae",
-  "release_page": "https://github.com/kitzure/littleprince-launcher/releases/tag/v1.1",
+  "size_bytes": 34204240,
+  "sha256": "8bbce81be3581253b5543f4da0f0edff91bfc842b10c7634278668ecc139b216",
+  "release_page": "https://github.com/kitzure/littleprince-launcher/releases/tag/v1.2",
   "android": {
     "title": "星夜重圓 Starwish Reunion",
     "version": "1.13.0",
