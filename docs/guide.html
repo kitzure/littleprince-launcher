@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#fff9ec">
-  <meta name="description" content="How to install Little Prince Launcher, which classic games it supports, how its local servers work, and important limitations.">
+  <meta name="description" content="How to install Little Prince Launcher, which games it supports (LP1–LP3, LPO, 星願思語 and Starwish Reunion), how its local servers work, and important limitations.">
   <title>Setup & Support Guide — Little Prince Launcher</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/site.css">
@@ -49,12 +49,14 @@
 
         <section id="supported-games">
           <h2>02 / Supported games</h2>
-          <p>The launcher targets these four classic titles. “Supported” describes the local launcher/server integration, not a guarantee that every original mode or service is complete.</p>
+          <p>The launcher supports these six titles: the four classics, plus 星願思語 (LP4) and 星夜重圓 Starwish Reunion (LP5) since v1.1. “Supported” describes the local launcher/server integration, not a guarantee that every original mode or service is complete.</p>
           <div class="support-game" id="lp1"><span class="game-code">LP1</span><div><h3>Little Prince</h3><p>Classic game access through the portal, local account/progress handling and per-title mod presets. Patches for the original CD version are also included.</p></div></div>
           <div class="support-game" id="lp2"><span class="game-code">LP2</span><div><h3>Starwish Legend</h3><p>The same local portal and account/progress integration, with game-specific fields and CD-version patches.</p></div></div>
           <div class="support-game" id="lp3"><span class="game-code">LP3</span><div><h3>Prince Adventure</h3><p>Local accounts/progress, title-specific presets such as card unlocks, and CD-version patches.</p></div></div>
           <div class="support-game" id="lpo"><span class="game-code">LPO</span><div><h3>Little Prince Online</h3><p>A local replacement server, account management, worlds, saves, local friends/mail and leaderboards. Lobby/room handling is included; full multiplayer behavior is not guaranteed.</p></div></div>
-          <div class="document-note"><p><strong>Not included:</strong> the newer Starwish Party app, LP4, official account synchronization, and macOS/Linux/mobile launcher builds. The website's modern artwork is a presentation choice, not support for the newer app.</p></div>
+          <div class="support-game" id="lp4"><span class="game-code">LP4</span><div><h3>星願思語 · 星空聯盟</h3><p>New in v1.1. The publisher's web build, opened from its own portal card. Its textures, music, question banks and battle data are downloaded from the publisher the first time you play; login, saves, high scores, the shop and ranks run on the local server, and new players get the full licence (all difficulty levels). Plays in the publisher's Flash browser.</p></div></div>
+          <div class="support-game" id="lp5"><span class="game-code">LP5</span><div><h3>星夜重圓 Starwish Reunion</h3><p>New in v1.1. The publisher's Android app, run on this PC: its portal card sets up a local Android emulator (Google's SDK, after you accept its licence), builds a patched APK from the publisher's own copy and serves the game's accounts, progress and level downloads locally. A Reunion mods page edits unlocked games, levels, ranks, gold, stones and stamina. For phones, see the <a href="#android">Android APK</a>.</p></div></div>
+          <div class="document-note"><p><strong>Not included:</strong> the newer Starwish Party app, LP4's classroom/teacher mode, official account synchronization, and macOS/Linux/mobile launcher builds. The website's modern artwork is a presentation choice, not support for the newer app.</p></div>
         </section>
 
         <section id="how-it-works">
@@ -89,6 +91,7 @@
             <div><dt>Computer</dt><dd>A Windows desktop or laptop. Use a current Windows installation; compatibility with old Windows releases or ARM/emulation is not guaranteed.</dd></div>
             <div><dt>Python</dt><dd>Python 3 with Tkinter. It is not bundled in the launcher ZIP. The normal python.org Windows installation includes Tkinter.</dd></div>
             <div><dt>Permissions</dt><dd>Administrator rights for the hosts redirect and port-80 service. Free local ports are needed for the services above.</dd></div>
+            <div><dt>Starwish Reunion</dt><dd>Hardware virtualization (Windows Hypervisor Platform) for the Android emulator, and about 2 GB for the emulator, its Android 9 system image and the game.</dd></div>
             <div><dt>Downloads</dt><dd>Internet access for missing browser/game files. The small launcher ZIP is not the full game collection; individual client downloads may be hundreds of megabytes.</dd></div>
             <div><dt>Storage</dt><dd>A writable folder with space for the launcher, downloaded clients and saves. Keep backups before replacing a game or launcher folder.</dd></div>
             <div><dt>Game ownership</dt><dd>Use only copies you legally own. No official serial key, subscription or publisher account is supplied.</dd></div>

@@ -25,9 +25,12 @@ SUPPORTED TITLES
 - LP2: Starwish Legend
 - LP3: Prince Adventure
 - LPO: Little Prince Online
+- LP4: 星願思語 · 星空聯盟 (new in v1.1; web build, local server)
+- LP5: 星夜重圓 Starwish Reunion (new in v1.1; Android app in a local
+  emulator the launcher sets up; phone APK on the website guide)
 These titles have local launcher/server integration. Support is not
 an assurance that every original mode or service is complete.
-The newer Starwish Party app and LP4 are not supported. The website's
+The newer Starwish Party app and LP4's classroom mode are not supported. The website's
 modern character artwork does not change the supported game list.
 
 HOW IT WORKS
@@ -63,6 +66,8 @@ REQUIREMENTS
 - Internet and additional disk space for missing browser/game files.
   The launcher ZIP is not the complete game collection; individual
   downloads can be hundreds of megabytes.
+- Starwish Reunion: hardware virtualization (Windows Hypervisor
+  Platform) and about 2 GB for the Android emulator and the game.
 - Game copies you legally own. No official key/subscription is supplied.
 
 DATA AND SAFETY
