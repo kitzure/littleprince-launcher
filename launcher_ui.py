@@ -621,13 +621,17 @@ class Window:
         widths = [measure.measure(label) for _c, label in labels]
         one_row = sum(widths) + gap * (len(labels) - 1) <= self.WORDS_W - 52
         col_w = max(widths) + gap if widths else gap
+        # six games: two rows of three when they fit, else columns of two
+        cols = 3 if len(labels) % 3 == 0 and 3 * col_w - gap <= self.WORDS_W - 52 else 2
+        rows = (len(labels) + cols - 1) // cols
+        top = 262 - (rows - 1) * 15
         for i, (c, label) in enumerate(labels):
             if one_row:
                 x = 26 + sum(w + gap for w in widths[:i])
                 y = 262
             else:
-                x = 26 + (i % 2) * col_w
-                y = 248 + (i // 2) * 32
+                x = 26 + (i % cols) * col_w
+                y = top + (i // cols) * 30
             width = widths[i]
             words.create_text(x, y, text=label, font=f_tab, anchor="w",
                               fill=GOLD if c == code else DIM,

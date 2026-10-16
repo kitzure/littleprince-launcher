@@ -119,7 +119,6 @@
   </svg>
   <h1>Mods</h1>
   <span class="grow"></span>
-  <a class="muted" href="/mods/reunion" title="星夜重圓 keeps its own players">星夜重圓 (LP5) &rarr;</a>
   <label class="muted" for="account">Account</label>
   <select id="account"></select>
   <button id="refresh" title="Reload the saved progress">Refresh</button>
@@ -151,7 +150,7 @@
           <button id="revert-all">Revert all mods</button>
           <button id="reset-legacy">Reset old mods to defaults...</button>
         </div>
-        <p class="hint">Applies to LP1, LP2, LP3 and LPO together. Close the games before reverting,
+        <p class="hint">Applies to LP1, LP2, LP3 and LPO together (LP4 and LP5 have their own Restore). Close the games before reverting,
           then sign in again. Only touched fields and score boards are restored; later progress
           on those same fields is replaced. Identity, password and unrelated saves stay intact.</p>
         <div id="undo-msg" role="status" class="muted"></div>
@@ -192,6 +191,10 @@
         <div id="p-saved"></div>
       </div>
 
+      <div class="card hide" id="frame-card">
+        <iframe id="game-frame" title="Game mods" scrolling="no" style="width:100%;min-height:240px;border:0;background:transparent"></iframe>
+      </div>
+
       <div class="card known">
         <h3>Fields this game can hold</h3>
         <p class="sub">Read off the game's own code - the field editor above lists exactly these.</p>
@@ -212,7 +215,7 @@
 <script>
 const $ = id => document.getElementById(id);
 
-// The four clients this launcher serves, in the order the rail shows them. The blurb
+// The six games this launcher serves, in the order the rail shows them. The blurb
 // under each heading is the note the old single-page layout carried per card.
 const GAMES = [
   {code: 'LP1', zh: '星願小王子',
@@ -225,11 +228,17 @@ const GAMES = [
         'not pinned yet, so there is no preset for it.'},
   {code: 'LP3', zh: '星願歷奇',
    sub: 'A card panel entry unlocks when <code>gameCards[cardId-1] &gt; 0</code>.'},
+  {code: 'LP4', zh: '星願思語', frame: '/mods/lp4?embed=1',
+   sub: 'Coins, soldiers, the difficulty each mini-game has opened and the shop bag, kept on ' +
+        'this account. The game reads them at its next login.'},
+  {code: 'LP5', zh: '星夜重圓', frame: '/mods/reunion?embed=1',
+   sub: "The Android game's save tied to this account (sign in on its Other's login with " +
+        'this account), or any device player on this machine.'},
   {code: 'LPO', zh: '小王子 Online',
    sub: 'Coins, crystals and the daily maze live on the player profile.'},
 ];
 const ALL = {code: 'ALL', zh: 'every field at once',
-             sub: 'The raw record, for anything the four games above do not name.'};
+             sub: 'The raw record, for anything the games above do not name.'};
 
 // Slot counts the clients insist on, for the "has the right number of values" check.
 // Taken from the field notes the server sends, so the editor can say so out loud
@@ -485,6 +494,17 @@ function renderAll() {
   $('progress').textContent = dump;
 }
 
+// The frame is the same origin, so it can be sized to its page: the outer page
+// then scrolls as one, instead of a box scrolling inside it.
+function fitFrame() {
+  const f = $('game-frame');
+  try {
+    const h = f.contentDocument && f.contentDocument.body.scrollHeight;
+    if (h) f.style.height = h + 'px';
+  } catch (e) { /* not loaded yet */ }
+}
+setInterval(fitFrame, 500);
+
 function render() {
   $('body').classList.remove('hide');
   const undo = state.undo || {};
@@ -501,6 +521,19 @@ function render() {
     ' <span class="muted">Only ' + g.code + "'s fields are shown and written here.</span>");
 
   const isAll = g.code === 'ALL';
+  // LP4 and LP5 keep their saves apart from the shared record: their own editor
+  // goes in the frame, and the shared cards step aside.
+  const framed = !!g.frame;
+  $('frame-card').classList.toggle('hide', !framed);
+  ['p-presets', 'f-name', 'p-saved', 'p-known'].forEach(id =>
+    $(id).closest('.card').classList.toggle('hide', isAll || framed));
+  if (framed) {
+    $('allcard').classList.add('hide');
+    const src = g.frame + '&email=' + encodeURIComponent(state.email || '');
+    if ($('game-frame').getAttribute('src') !== src) $('game-frame').setAttribute('src', src);
+    fitFrame();
+    return;
+  }
   // The cards belong to the game in the rail; "every field at once" shows the raw
   // record instead, so hide them.
   $('p-presets').closest('.card').classList.toggle('hide', isAll);
@@ -557,7 +590,7 @@ function revertAll(resetUntracked) {
   if (!state) return;
   const undo = state.undo || {};
   const legacy = resetUntracked || (undo.legacy_fields || 0) > 0;
-  const description = 'Account: ' + state.email + '\nAll four games. Close every game first.\n' +
+  const description = 'Account: ' + state.email + '\nLP1, LP2, LP3 and LPO. Close every game first.\n' +
     'Restore ' + (undo.backed_up_fields || 0) + ' backed-up fields to their pre-mod values. ' +
     'Later progress on these same fields will be replaced. Unrelated saves, identity and password stay.\n' +
     (legacy ? '\nWARNING: Previous values for old mods are unavailable and CANNOT be recovered. ' +

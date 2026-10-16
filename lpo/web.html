@@ -46,6 +46,10 @@
   .panes{min-width:0;display:grid;gap:14px}
   .rail{position:sticky;top:78px;display:flex;flex-direction:column;gap:4px;
         max-height:calc(100vh - 130px);overflow:auto}
+  /* The rail scrolls when the window is short.  The publisher's browser (Chromium 69)
+     shrinks flex children of a scrolling column instead, so the Settings and Admin
+     groups were squeezed on top of each other; they keep their own height here. */
+  .rail > *{flex-shrink:0}
   .rail .rl{font-size:10.5px;color:var(--dim);letter-spacing:1.2px;text-transform:uppercase;
             padding:12px 10px 5px}
   .rail .rl:first-child{padding-top:2px}
@@ -1316,6 +1320,14 @@
       <div class="field"><label for="f-right_total">Right total</label><input id="f-right_total" inputmode="numeric"></div>
     </div>
     <div id="st-msg"></div>
+
+    <!-- LP4 and LP5 keep their own saves; they are read here and changed on the Mods page -->
+    <h3 class="sh">星願思語 (LP4)</h3>
+    <div id="st-lp4"><p class="hint">Reading the records…</p></div>
+    <h3 class="sh">星夜重圓 (LP5)</h3>
+    <div id="st-lp5"><p class="hint">Reading the records…</p></div>
+    <p class="hint">These two games keep their own saves; change them on the
+      <a href="/mods">Mods page</a>.</p>
   </section>
 
   <!-- ── accounts on this machine ───────────────────────────────────── -->
@@ -1400,6 +1412,7 @@ function renderNavigation(){
   });
   document.querySelectorAll('#subnav button').forEach(b=>b.classList.toggle('on', b.dataset.sub===SUB));
   $('subnav').classList.toggle('hide', !settings);
+  if(settings && SUB==='stats'){ if(CARD) renderOwnSaves(); else loadCard(); }
   $('savebar').classList.toggle('hide',
     !settings || SUB==='list' || SUB==='billboard' || SUB==='files');
   document.querySelectorAll('#adminnav button[data-sub]').forEach(b=>{
@@ -3207,6 +3220,7 @@ async function loadCard(){
     HOME_GAME=(played||games[0]||{}).game||null;
   }
   renderHomeGames();
+  renderOwnSaves();
   if(PAGE==='board') renderBoard();
 }
 function homeGame(code){ HOME_GAME=code; renderHomeGames(); }
@@ -3224,6 +3238,16 @@ function renderHomeGames(){
     ${g.stats.length?`<div class="tiles">${g.stats.map(statTile).join('')}</div>`
       :`<p class="none">Nothing saved for this game yet.</p>`}
     <p class="hint">${cEsc(g.note)}</p>`;
+}
+function renderOwnSaves(){
+  ['LP4','LP5'].forEach(code=>{
+    const box=$('st-'+code.toLowerCase());
+    if(!box) return;
+    const g=CARD && (CARD.games||[]).find(x=>x.game===code);
+    box.innerHTML=!g ? '<p class="hint">Reading the records…</p>'
+      : g.stats.length ? `<div class="tiles">${g.stats.map(statTile).join('')}</div>`
+      : '<p class="hint">Nothing saved for this game yet.</p>';
+  });
 }
 function statTile(st){
   const numeric=/^[0-9][0-9 ,./+-]*$/.test(String(st.value));

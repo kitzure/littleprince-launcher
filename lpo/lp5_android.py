@@ -232,7 +232,7 @@ def _sdk_install(packages, lo, hi):
         line = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", raw.decode("utf-8", "replace")).strip()
         if line:
             step += 1
-            _phase(line[:90], min(hi - 1, lo + step))
+            _phase("Installing the Android SDK: " + line[:70], min(hi - 1, lo + step))
     if proc.wait():
         raise IOError("android sdk install failed (exit %d)" % proc.returncode)
 

@@ -556,3 +556,113 @@ def handle(method, raw_path, host, body=b""):
         log("  lp4 404 %s" % path)
         return 404, "text/plain", b"not in the local copy"
     return 200, CTYPES.get(target.suffix.lower(), "application/octet-stream"), target.read_bytes()
+
+
+# ─── Mods: the accounts page's 星願思語 tab ───────────────────────────────────
+# Same idea as the other games' mods: a preset or a few fields are written to the
+# account's LP4 save, and the first time a field is touched its old value is kept
+# so "Restore" can put everything back.  The game reads it at its next login.
+
+MAX_TIER = 6                     # 簡單 容易 中等 複雜 困難 特別
+SERIALS = ("HAVE_SERIAL_PERSON", "LIMITED_EDITION_RELEASE", "HKEDCITY", "DEMO_PERSON")
+MOD_FIELDS = ("coins", "serial", "soldierLv", "soldierExp", "game_maxlv", "items")
+
+PRESETS = [
+    {"id": "all_levels", "label": "Open every difficulty",
+     "detail": "All 24 mini-games open up to 特別 (the sixth level).",
+     "set": lambda s: s.update(game_maxlv=[-2] + [MAX_TIER] * (GAMES - 1))},
+    {"id": "all_soldiers", "label": "Unlock every soldier",
+     "detail": "All 31 allies join, each at least level 10 for battle.",
+     "set": lambda s: s.update(soldierLv=[max(1, int(v or 0)) for v in
+                                          (list(s.get("soldierLv") or []) + [0] * ROLES)[:ROLES]],
+                               soldierExp=[max(int(v or 0), _exp_for_levels(0, 9)) for v in
+                                           (list(s.get("soldierExp") or []) + [0] * ROLES)[:ROLES]])},
+    {"id": "rich", "label": "999,999 coins",
+     "detail": "For battles and the shop.",
+     "set": lambda s: s.update(coins=999999)},
+    {"id": "all_items", "label": "Every shop item ×99",
+     "detail": "All 52 items in the bag; equip them from 檢閱士兵.",
+     "set": lambda s: s.update(items={str(i): 99 for i in range(1, 53)})},
+    {"id": "full_licence", "label": "Full licence",
+     "detail": "HAVE_SERIAL_PERSON: every tier and war map (new players already have it).",
+     "set": lambda s: s.update(serial=DEFAULT_SERIAL)},
+]
+
+
+def _snapshot(save, keys):
+    undo = save.setdefault("mods_undo", {})
+    for k in keys:
+        if k not in undo:
+            undo[k] = json.loads(json.dumps(save.get(k)))
+
+
+def _clean_field(name, value):
+    if name == "coins":
+        return max(0, min(99999999, int(float(value))))
+    if name == "serial":
+        if value not in SERIALS:
+            raise ValueError("unknown licence %r" % value)
+        return value
+    if name in ("soldierLv", "soldierExp", "game_maxlv"):
+        vals = [int(float(v)) for v in (value if isinstance(value, list) else str(value).split(","))]
+        if name == "game_maxlv":
+            vals = ([-2] + [max(1, min(MAX_TIER, v)) for v in vals[1:]])[:GAMES]
+        else:
+            vals = [max(0, v) for v in vals][:ROLES]
+        return vals
+    if name == "items":
+        return {str(int(k)): max(0, min(999, int(v))) for k, v in dict(value).items() if int(v) > 0}
+    raise ValueError("not an LP4 mod field: %s" % name)
+
+
+def mods_state(email):
+    acct = _acc().get(email)
+    if not acct:
+        raise ValueError("no account %s" % email)
+    s = _save_of(acct)
+    names, _ = _table("GetItemFunction")
+    return {"email": acct.get("email"), "name": _display_name(acct),
+            "played": bool(acct.get("lp4")),
+            "fields": {k: s.get(k) for k in MOD_FIELDS},
+            "undo": sorted((s.get("mods_undo") or {}).keys()),
+            "presets": [{k: v for k, v in p.items() if k != "set"} for p in PRESETS],
+            "serials": list(SERIALS), "tiers": MAX_TIER, "games": GAMES - 1, "roles": ROLES,
+            "item_names": (names or {}).get("Name") or []}
+
+
+def apply_mod(email, preset=None, fields=None):
+    acct = _acc().get(email)
+    if not acct:
+        raise ValueError("no account %s" % email)
+    chosen = None
+    if preset:
+        chosen = next((p for p in PRESETS if p["id"] == preset), None)
+        if not chosen:
+            raise ValueError("unknown preset %s" % preset)
+    clean = {k: _clean_field(k, v) for k, v in (fields or {}).items()}
+
+    def mutate(save):
+        before = {k: json.dumps(save.get(k)) for k in MOD_FIELDS}
+        trial = json.loads(json.dumps(save))
+        if chosen:
+            chosen["set"](trial)
+        trial.update(clean)
+        touched = [k for k in MOD_FIELDS if json.dumps(trial.get(k)) != before[k]]
+        _snapshot(save, touched)
+        for k in touched:
+            save[k] = trial[k]
+    _change(acct, mutate)
+    log("lp4 mods: %s %s" % (email, preset or ",".join(clean)))
+    return mods_state(email)
+
+
+def restore_mods(email):
+    acct = _acc().get(email)
+    if not acct:
+        raise ValueError("no account %s" % email)
+
+    def mutate(save):
+        for k, v in (save.pop("mods_undo", None) or {}).items():
+            save[k] = v
+    _change(acct, mutate)
+    return mods_state(email)

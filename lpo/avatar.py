@@ -286,9 +286,12 @@ def render(parts: dict, scale: float = 2.0, pad: int = 2, view: str = "full"):
             canvas.alpha_composite(warped)
         if view == "head" and head_items:
             px = _head_box_px(head_items, x0, y0, scale, canvas.size)
-            img = canvas.crop(px)
-            b2 = img.getbbox()
-            return img.crop(b2) if b2 else img
+            if px:
+                img = canvas.crop(px)
+                side = max(img.size)            # square, so it fills a round frame
+                sq = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+                sq.paste(img, ((side - img.size[0]) // 2, side - img.size[1]))
+                return sq
         box = canvas.getbbox()
         img = canvas.crop(box) if box else canvas
         return _head_crop(img, scale) if view == "head" else img
@@ -302,6 +305,10 @@ def render(parts: dict, scale: float = 2.0, pad: int = 2, view: str = "full"):
 HEAD_MARGIN = 3.0              # character units of air around the head
 HEAD_FRACTION = 0.46           # fallback only, when no head geometry is available
 HEAD_CENTRE_OFFSET = 5.35      # fallback only, character units right of centre
+# The round portraits show the head and the top of the body ("bust"): the crop goes
+# this far below the head, as a share of the head's height, then is made square.
+TORSO_SHARE = 0.28
+BUST_VERSION = "bust3"         # part of the cache key - old head-only crops re-render
 
 
 def _head_box_px(head_items, x0: float, y0: float, scale: float, canvas_size):
@@ -327,6 +334,11 @@ def _head_box_px(head_items, x0: float, y0: float, scale: float, canvas_size):
     uy0 = min(b[1] for b in boxes) - HEAD_MARGIN
     ux1 = max(b[2] for b in boxes) + HEAD_MARGIN
     uy1 = max(b[3] for b in boxes) + HEAD_MARGIN
+    # head and shoulders: reach below the chin, then square it around the middle
+    uy1 += (uy1 - uy0) * TORSO_SHARE
+    side = max(ux1 - ux0, uy1 - uy0)
+    cx = (ux0 + ux1) / 2
+    ux0, ux1 = cx - side / 2, cx + side / 2
     W, H = canvas_size
     left = max(0, int(round((ux0 - x0) * scale)))
     top = max(0, int(round((uy0 - y0) * scale)))
@@ -363,7 +375,7 @@ def key_for(parts: dict, view: str = "full") -> str:
     except Exception:
         stamp = "0"
     if view and view != "full":
-        blob += "|" + view
+        blob += "|" + view + ("|" + BUST_VERSION if view == "head" else "")
     return hashlib.sha1((stamp + "|" + blob).encode("utf-8")).hexdigest()[:16]
 
 

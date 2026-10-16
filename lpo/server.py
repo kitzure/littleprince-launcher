@@ -3056,8 +3056,8 @@ def avatar_ensure(prof: dict, view: str = "full"):
         return None, None
 
 
-def player_card_games(prof: dict, prog: dict) -> list:
-    """The four games' stat blocks for one player (profile + progress merged)."""
+def player_card_games(prof: dict, prog: dict, acct: dict = None) -> list:
+    """The six games' stat blocks for one player (profile + progress merged)."""
     p = dict(prof or {})
     for k, v in (prog or {}).items():
         if str(v) not in ("", "None"):
@@ -3131,9 +3131,39 @@ def player_card_games(prof: dict, prog: dict) -> list:
          "note": "Gems and items are per-id amounts; the boss record and weapons are lists."},
         {"game": "LP3", "title": "星願歷奇", "stats": lp3,
          "note": "The totals the game's own header shows, plus the counters behind them."},
+        {"game": "LP4", "title": "星願思語", "stats": lp4_stats(acct),
+         "note": "Coins, the soldiers the battles unlocked, and the best score per mini-game."},
+        {"game": "LP5", "title": "星夜重圓", "stats": lp5.account_stats(acct or {}),
+         "note": "The 星夜重圓 save tied to this account - sign in on its Other's login "
+                 "with this account's name and password."},
         {"game": "LPO", "title": "小王子 Online", "stats": lpo,
          "note": "The MMO's player record - the same numbers the castle's HUD reads."},
     ]
+
+
+def lp4_stats(acct) -> list:
+    """星願思語's save, kept inside the account (lp4.py)."""
+    save = (acct or {}).get("lp4") or {}
+    if not save:
+        return []
+    soldiers = sum(1 for v in save.get("soldierLv") or [] if int(v or 0) >= 1)
+    best = 0
+    games = set()
+    for r in save.get("results") or []:
+        try:
+            best = max(best, int(float(r.get("gameScore") or 0)))
+        except (TypeError, ValueError):
+            pass
+        games.add(str(r.get("gameID")))
+    owned = sum(int(v or 0) for v in (save.get("items") or {}).values())
+    return [s for s in (
+        _stat("Coins", str(save.get("coins", 0)), "spent on battles and the shop"),
+        _stat("Soldiers", str(soldiers), "allies unlocked for battle"),
+        _stat("Mini-games played", str(len(games)), "of 24"),
+        _stat("Best score", str(best), "highest single round"),
+        _stat("Battles won", str(len(save.get("maps_won") or [])), "war maps cleared"),
+        _stat("Items", str(owned), "shop items held"),
+    ) if s["value"] not in ("0", "")]
 
 
 def player_card_avatar(prof: dict) -> dict:
@@ -3203,7 +3233,7 @@ def player_card_payload(email: str) -> dict:
         "uid": str(acct.get("uid") or ""),
         "created": acct.get("created") or "",
         "last_login": acct.get("last_login") or "",
-        "games": player_card_games(prof, prog),
+        "games": player_card_games(prof, prog, acct),
         "avatar": player_card_avatar(prof),
         "board": {
             "me": ({"rank": me["rank"], "score": me["score"], "of": len(rows)} if me else None),
@@ -4507,7 +4537,7 @@ def resolve_login_account(typed: str):
 # 星願思語 logs in through the same accounts and the same name rules as the others
 lp4.configure(log=log.info, accounts=accounts, resolve=resolve_login_account,
               default_profile=DEFAULT_PROFILE)
-lp5.configure(log=log.info)
+lp5.configure(log=log.info, accounts=accounts)
 lp5_android.configure(log=log.info)
 
 
@@ -6859,6 +6889,29 @@ class LittlePrinceHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
+    def serve_lp4_mods(self, method, path, body):
+        """星願思語's Mods tab: one signed-in account's LP4 save (lp4.py)."""
+        who = _session_email(self)
+        if not who:
+            self.send_json({"error": "sign in first"}, status=401)
+            return
+        try:
+            data = json.loads(body.decode("utf-8") or "{}") if body else {}
+        except ValueError:
+            data = {}
+        route = path.rstrip("/")[len("/web/api/lp4/"):]
+        try:
+            if route == "mods" and method == "GET":
+                self.send_json(lp4.mods_state(who))
+            elif route == "mods" and method == "POST":
+                self.send_json(lp4.apply_mod(who, data.get("preset"), data.get("fields")))
+            elif route == "restore" and method == "POST":
+                self.send_json(lp4.restore_mods(who))
+            else:
+                self.send_json({"error": "unknown"}, status=404)
+        except ValueError as e:
+            self.send_json({"error": str(e)}, status=400)
+
     def serve_reunion_api(self, method, path, body):
         """The portal's sixth card and the 星夜重圓 Mods panel."""
         route = path.rstrip("/")[len("/web/api/reunion/"):]
@@ -7087,6 +7140,10 @@ class LittlePrinceHandler(http.server.BaseHTTPRequestHandler):
         if path.split("?")[0].startswith("/web/api/reunion/"):
             self.serve_reunion_api("POST", path.split("?")[0],
                                    self.rfile.read(content_length) if content_length else b"")
+            return
+        if path.split("?")[0].startswith("/web/api/lp4/"):
+            self.serve_lp4_mods("POST", path.split("?")[0],
+                                self.rfile.read(content_length) if content_length else b"")
             return
 
         # ── the portal asking for a game it does not have yet ──
@@ -7515,6 +7572,12 @@ class LittlePrinceHandler(http.server.BaseHTTPRequestHandler):
             return
         if clean_path.rstrip("/") in ("/mods/reunion", "/mods/reunion.html"):
             self.serve_package_file("reunion_mods.html")
+            return
+        if clean_path.startswith("/web/api/lp4/"):
+            self.serve_lp4_mods("GET", clean_path, b"")
+            return
+        if clean_path.rstrip("/") in ("/mods/lp4", "/mods/lp4.html"):
+            self.serve_package_file("lp4_mods.html")
             return
         # Log every fetch: which SWF the client asks for, and when, is the only way
         # to tell "the client never requested the panel" from "the panel failed".

@@ -131,6 +131,45 @@ def _by_login(db, login):
     return None
 
 
+def account_player(db, acct, create=False):
+    """The 星夜重圓 save that belongs to a launcher account (by its email)."""
+    email = (acct.get("email") or "").lower()
+    for p in db["players"].values():
+        if (p.get("AccountEmail") or "").lower() == email:
+            return p
+    if not create:
+        return None
+    name = acct.get("login_name") or email.split("@")[0]
+    p = _by_login(db, name)
+    if p is None or p.get("AccountEmail"):
+        p = _new_player(db, name)
+    p["AccountEmail"] = acct.get("email")
+    p["Name"] = (acct.get("profile") or {}).get("name") or name
+    log("  lp5: %s plays as %s" % (acct.get("email"), p["LoginID"]))
+    return p
+
+
+def account_stats(acct):
+    """Stat blocks for the accounts page (same shape as server._stat)."""
+    p = account_player(load_db(), acct)
+    if not p:
+        return []
+    passed = sum(1 for g in range(1, GAMES + 1) for lv in range(1, LEVELS + 1)
+                 if highest_rank(p, g, lv) not in (None, "Miss"))
+    plays = len(p.get("results") or [])
+    stat = lambda label, value, hint: {"label": label, "value": str(value), "hint": hint}
+    return [s for s in (
+        stat("Gold", p.get("Gold", 0), "coins earned in the mini-games"),
+        stat("Games open", "%d / %d" % (p.get("UnlockedGame", 1), GAMES), "on the world map"),
+        stat("Levels open", "%d / %d" % (sum(p.get("UnlockedLevel") or []), GAMES * LEVELS),
+             "across all 17 games"),
+        stat("Levels passed", passed, "rank better than Miss"),
+        stat("Stars made", sum(1 for v in (p.get("UnlockedStar") or []) if v), "of 17"),
+        stat("Stones", sum(p.get("Stones") or []), "all eight kinds"),
+        stat("Rounds played", plays, "every finished round"),
+    ) if s["value"] not in ("0", "")]
+
+
 def _pipe(values):
     return "|".join(str(v) for v in values)
 
@@ -210,7 +249,14 @@ def ajax(name, f, db):
         else:
             acc, pw = (f.get("Acc") or "").strip(), f.get("Pw") or ""
             p = _by_login(db, acc)
-            if p is None:
+            # A launcher account signs in with its own name and password, and its
+            # 星夜重圓 save is tied to it - the accounts page shows that save's stats.
+            accounts = _HOOKS.get("accounts")
+            acct = accounts.verify(acc, pw, touch=False) if (accounts and acc and pw) else None
+            if acct:
+                p = account_player(db, acct, create=True)
+                p["Password"] = _pw_hash(pw)
+            elif p is None:
                 if not acc or not pw:
                     return dict(ok, State="NotExist"), False
                 p = _new_player(db, acc, pw)
@@ -429,6 +475,7 @@ def players_payload():
     out = []
     for p in sorted(db["players"].values(), key=lambda q: q["ID"]):
         out.append({"ID": p["ID"], "Name": p["Name"], "LoginID": p["LoginID"],
+                    "AccountEmail": p.get("AccountEmail") or "",
                     "LastLoginTime": p.get("LastLoginTime"),
                     "fields": {k: p.get(k) for k in MOD_FIELDS},
                     "best": {"%d-%d" % (g, lv): highest_rank(p, g, lv)

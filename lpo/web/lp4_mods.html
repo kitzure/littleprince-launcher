@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mods - 星願思語</title>
+<style>
+  :root { --bg:#000; --fg:#fff; --dim:#8a8a8a; --line:#242424; --card:#0b0b0b; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; background:var(--bg); color:var(--fg);
+               font:14px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; }
+  a { color:var(--fg); }
+  header { position:sticky; top:0; z-index:5; background:#000; border-bottom:1px solid var(--line);
+           padding:14px 18px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  h1 { font-size:15px; font-weight:600; margin:0; }
+  .grow { flex:1 1 auto; }
+  select, input, button { font:inherit; color:var(--fg); background:var(--card);
+                          border:1px solid var(--line); border-radius:8px; padding:6px 9px; }
+  button { cursor:pointer; }
+  button:hover { border-color:#777; }
+  button.primary { background:var(--fg); color:#000; border-color:var(--fg); font-weight:600; }
+  .muted { color:var(--dim); }
+  .hide { display:none; }
+  main { max-width:1120px; margin:0 auto; padding:18px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px;
+          padding:14px 16px; margin-bottom:14px; }
+  .card h3 { font-size:13px; margin:0 0 2px; font-weight:600; }
+  .sub { color:var(--dim); font-size:12.5px; margin:0 0 12px; max-width:80ch; }
+  .row { display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--line); }
+  .row:first-of-type { border-top:none; }
+  .row .t { flex:1 1 auto; }
+  .row .t b { display:block; font-weight:500; font-size:13px; }
+  .row .t span { display:block; color:var(--dim); font-size:11.5px; }
+  .msg { font-size:12px; color:var(--dim); margin-left:8px; }
+  .msg.ok { color:#9dffb0; } .msg.err { color:#ff8080; }
+  .fields { display:flex; flex-wrap:wrap; gap:10px 18px; align-items:end; }
+  .fields label { display:flex; flex-direction:column; gap:3px; font-size:11.5px; color:var(--dim); }
+  .fields input { width:110px; }
+  /* inside the Mods page's LP4 tab: that page already has the title and the way back */
+  body.embed header h1, body.embed .back { display:none; }
+  body.embed header { position:static; padding-top:0; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:6px 12px; }
+  .grid label { display:flex; align-items:center; justify-content:space-between; gap:8px;
+                font-size:12.5px; color:#c9c9c9; }
+  .grid input[type=number] { width:64px; padding:3px 6px; }
+  .grid select { padding:3px 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Mods &middot; 星願思語</h1>
+  <span class="grow"></span>
+  <a class="muted back" href="/mods">Other games</a>
+  <button id="refresh">Refresh</button>
+</header>
+<main>
+  <div id="signin" class="card hide">
+    <h3>Sign in first</h3>
+    <p class="sub">Mods write saved progress, so the server asks you to sign in on the
+      <a href="/web">accounts page</a>, then come back here.</p>
+  </div>
+
+  <div id="body" class="hide">
+    <div class="card">
+      <h3>How these apply</h3>
+      <p class="sub">Changes go to this account's 星願思語 save and the game reads them at its
+        <b>next login</b>: log out of the game (or reload its page) after changing something.
+        Each field remembers the value it had before its first change, so <b>Restore</b> puts
+        the save back exactly. <span id="played"></span></p>
+      <div class="row"><div class="t"><b>Restore</b><span id="undoinfo"></span></div>
+        <button id="restore">Restore</button><span class="msg" id="restoremsg"></span></div>
+    </div>
+
+    <div class="card">
+      <h3>Presets</h3>
+      <div id="presets"></div>
+    </div>
+
+    <div class="card">
+      <h3>Coins and licence</h3>
+      <p class="sub">Coins pay for battles and the shop. The licence decides how many difficulty
+        levels and war maps the game offers (HAVE_SERIAL_PERSON is everything).</p>
+      <div class="fields">
+        <label>Coins<input id="coins" type="number" min="0"></label>
+        <label>Licence<select id="serial"></select></label>
+        <button class="primary" id="savewallet">Save</button><span class="msg" id="walletmsg"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Mini-game difficulty</h3>
+      <p class="sub">The highest difficulty each mini-game has opened: 1 簡單, 2 容易, 3 中等,
+        4 複雜, 5 困難, 6 特別.</p>
+      <div class="grid" id="tiers"></div>
+      <div style="margin-top:10px"><button class="primary" id="savetiers">Save</button>
+        <span class="msg" id="tiersmsg"></span></div>
+    </div>
+
+    <div class="card">
+      <h3>Soldiers</h3>
+      <p class="sub">The allies who fight in the battle maps. Ticked = unlocked; their
+        experience is kept. The first one is always with you.</p>
+      <div class="grid" id="soldiers"></div>
+      <div style="margin-top:10px"><button class="primary" id="savesoldiers">Save</button>
+        <span class="msg" id="soldiersmsg"></span></div>
+    </div>
+
+    <div class="card">
+      <h3>Shop bag</h3>
+      <p class="sub">How many of each item the account holds (0-999).</p>
+      <div class="grid" id="items"></div>
+      <div style="margin-top:10px"><button class="primary" id="saveitems">Save</button>
+        <span class="msg" id="itemsmsg"></span></div>
+    </div>
+  </div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var Q = new URLSearchParams(location.search);
+  if (Q.get("embed")) { document.body.classList.add("embed"); }
+  // the 24 mini-games in the order game_maxlv keeps them (slot 0 is a marker)
+  var CODES = ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "B8", "B9", "B10", "B11", "B12",
+               "C13", "C14", "C15", "C16", "D17", "D18", "D19", "E20", "E21", "E22", "E23", "E24"];
+  var data = null;
+
+  function api(url, body) {
+    var opt = { credentials: "same-origin" };
+    if (body) {
+      opt.method = "POST";
+      opt.headers = { "Content-Type": "application/json" };
+      opt.body = JSON.stringify(body);
+    }
+    return fetch(url, opt).then(function (r) {
+      return r.json().then(function (j) { j._status = r.status; return j; });
+    });
+  }
+  function say(el, text, ok) { el.textContent = text; el.className = "msg " + (ok ? "ok" : "err"); }
+
+  function load() {
+    api("/web/api/lp4/mods").then(function (d) {
+      if (d._status === 401) { $("signin").classList.remove("hide"); return; }
+      data = d;
+      draw();
+    });
+  }
+
+  function draw() {
+    var f = data.fields;
+    $("body").classList.remove("hide");
+    $("played").textContent = data.played ? "" :
+      "This account has not played 星願思語 yet; these are the values a first login starts with.";
+    $("undoinfo").textContent = data.undo.length ? " - changed: " + data.undo.join(", ")
+                                                 : " - nothing changed yet";
+    $("restore").disabled = !data.undo.length;
+    $("coins").value = f.coins;
+
+    var ser = $("serial");
+    ser.innerHTML = "";
+    data.serials.forEach(function (s) {
+      var o = document.createElement("option");
+      o.value = o.textContent = s;
+      ser.appendChild(o);
+    });
+    ser.value = f.serial;
+
+    var tiers = $("tiers"), maxlv = (f.game_maxlv && f.game_maxlv.length > 1) ? f.game_maxlv : [];
+    tiers.innerHTML = "";
+    CODES.forEach(function (c, i) {
+      var l = document.createElement("label"), sel = document.createElement("select");
+      l.textContent = c + " ";
+      sel.setAttribute("data-tier", i + 1);
+      for (var t = 1; t <= data.tiers; t++) {
+        var o = document.createElement("option");
+        o.value = o.textContent = t;
+        sel.appendChild(o);
+      }
+      sel.value = Math.max(1, Math.min(data.tiers, maxlv[i + 1] || 1));
+      l.appendChild(sel);
+      tiers.appendChild(l);
+    });
+
+    var sol = $("soldiers");
+    sol.innerHTML = "";
+    for (var i = 0; i < data.roles; i++) {
+      var l = document.createElement("label"), box = document.createElement("input");
+      l.textContent = "Soldier " + (i + 1) + " ";
+      box.type = "checkbox";
+      box.setAttribute("data-soldier", i);
+      box.checked = ((f.soldierLv || [])[i] || 0) >= 1;
+      box.disabled = i === 0;
+      l.appendChild(box);
+      sol.appendChild(l);
+    }
+
+    var items = $("items"), names = data.item_names.length ? data.item_names : [];
+    items.innerHTML = "";
+    for (var n = 1; n <= 52; n++) {
+      var row = document.createElement("label"), span = document.createElement("span"),
+          num = document.createElement("input");
+      span.textContent = names[n - 1] || ("Item " + n);
+      num.type = "number"; num.min = 0; num.max = 999;
+      num.setAttribute("data-item", n);
+      num.value = (f.items || {})[String(n)] || 0;
+      row.appendChild(span);
+      row.appendChild(num);
+      items.appendChild(row);
+    }
+
+    var box2 = $("presets");
+    box2.innerHTML = "";
+    data.presets.forEach(function (p) {
+      var row = document.createElement("div"), t = document.createElement("div"),
+          b = document.createElement("b"), s = document.createElement("span"),
+          go = document.createElement("button"), msg = document.createElement("span");
+      row.className = "row"; t.className = "t"; msg.className = "msg";
+      b.textContent = p.label; s.textContent = p.detail; go.textContent = "Apply";
+      go.onclick = function () { mod({ preset: p.id }, msg); };
+      t.appendChild(b); t.appendChild(s);
+      row.appendChild(t); row.appendChild(go); row.appendChild(msg);
+      box2.appendChild(row);
+    });
+  }
+
+  function mod(body, msgEl) {
+    return api("/web/api/lp4/mods", body).then(function (d) {
+      if (d.error) { say(msgEl, d.error); return; }
+      var id = msgEl.id;
+      data = d;
+      draw();
+      say(id ? $(id) : msgEl, "saved - log in again to see it", true);
+    });
+  }
+
+  $("refresh").onclick = load;
+  $("restore").onclick = function () {
+    api("/web/api/lp4/restore", {}).then(function (d) {
+      if (d.error) { say($("restoremsg"), d.error); return; }
+      data = d;
+      draw();
+      say($("restoremsg"), "restored", true);
+    });
+  };
+  $("savewallet").onclick = function () {
+    mod({ fields: { coins: $("coins").value, serial: $("serial").value } }, $("walletmsg"));
+  };
+  $("savetiers").onclick = function () {
+    var v = [-2];
+    [].forEach.call(document.querySelectorAll("[data-tier]"), function (s) {
+      v[Number(s.getAttribute("data-tier"))] = Number(s.value);
+    });
+    mod({ fields: { game_maxlv: v } }, $("tiersmsg"));
+  };
+  $("savesoldiers").onclick = function () {
+    var lv = (data.fields.soldierLv || []).slice();
+    for (var i = 0; i < data.roles; i++) { if (lv[i] == null) { lv[i] = 0; } }
+    [].forEach.call(document.querySelectorAll("[data-soldier]"), function (c) {
+      var i = Number(c.getAttribute("data-soldier"));
+      lv[i] = c.checked ? Math.max(1, lv[i] || 0) : 0;
+    });
+    mod({ fields: { soldierLv: lv } }, $("soldiersmsg"));
+  };
+  $("saveitems").onclick = function () {
+    var it = {};
+    [].forEach.call(document.querySelectorAll("[data-item]"), function (n) {
+      if (Number(n.value) > 0) { it[n.getAttribute("data-item")] = Number(n.value); }
+    });
+    mod({ fields: { items: it } }, $("itemsmsg"));
+  };
+  load();
+}());
+</script>
+</body>
+</html>

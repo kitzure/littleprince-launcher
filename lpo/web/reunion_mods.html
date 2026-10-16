@@ -44,13 +44,16 @@
   td select { padding:2px 4px; font-size:11.5px; border-radius:6px; }
   td select.set { border-color:#9dffb0; }
   .wrap { overflow-x:auto; }
+  /* inside the Mods page's LP5 tab: that page already has the title and the way back */
+  body.embed header h1, body.embed .back { display:none; }
+  body.embed header { position:static; padding-top:0; }
 </style>
 </head>
 <body>
 <header>
   <h1>Mods &middot; 星夜重圓 (Starwish Reunion)</h1>
   <span class="grow"></span>
-  <a class="muted" href="/mods">Other games</a>
+  <a class="muted back" href="/mods">Other games</a>
   <label class="muted" for="player">Player</label>
   <select id="player"></select>
   <button id="refresh">Refresh</button>
@@ -122,6 +125,9 @@
 (function () {
   var data = null, cur = null;
   var $ = function (id) { return document.getElementById(id); };
+  var Q = new URLSearchParams(location.search);
+  if (Q.get("embed")) { document.body.classList.add("embed"); }
+  var ACCOUNT = (Q.get("email") || "").toLowerCase();
 
   function api(url, body) {
     var opt = body ? { method: "POST", headers: { "Content-Type": "application/json" },
@@ -143,8 +149,10 @@
       sel.innerHTML = "";
       d.players.forEach(function (p) {
         var o = document.createElement("option");
-        o.value = p.ID; o.textContent = p.Name + " (#" + p.ID + ")";
+        var mine = ACCOUNT && (p.AccountEmail || "").toLowerCase() === ACCOUNT;
+        o.value = p.ID; o.textContent = p.Name + " (#" + p.ID + ")" + (mine ? " - this account" : "");
         sel.appendChild(o);
+        if (mine && !want) { want = String(p.ID); }
       });
       if (!d.players.length) { $("none").classList.remove("hide"); $("body").classList.add("hide"); return; }
       $("none").classList.add("hide");

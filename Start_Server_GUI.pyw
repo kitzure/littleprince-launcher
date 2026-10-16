@@ -534,6 +534,8 @@ TR = {
         "LP1": ("Little Prince", "When happiness meets courage"),
         "LP2": ("Starwish Legend", "The vanishing constellation"),
         "LP3": ("Prince Adventure", "Farm adventure"),
+        "LP4": ("Starwish Whispers", "The starry sky alliance"),
+        "LP5": ("Starwish Reunion", "17 learning games"),
         "LPO": ("Little Prince Online", "A new way to learn online"),
     },
     "zh": {
@@ -586,11 +588,13 @@ TR = {
         "LP1": ("星願小王子", "當幸福遇見勇氣"),
         "LP2": ("星願外傳", "星座消失之謎"),
         "LP3": ("星願歷奇", "農場大作戰"),
+        "LP4": ("星願思語", "星空聯盟"),
+        "LP5": ("星夜重圓", "17 個學習遊戲"),
         "LPO": ("星願小王子 ONLINE", "網上學習新體驗"),
     },
 }
 
-GAME_CODES = ("LP1", "LP2", "LP3", "LPO")
+GAME_CODES = ("LP1", "LP2", "LP3", "LP4", "LP5", "LPO")
 
 
 def profile_path():

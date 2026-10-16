@@ -32,11 +32,12 @@
 				<div id="p1"><a class="btn" href="/cloud/install?code=LP1">進入遊戲</a></div>
 				<div id="p2"><a class="btn" href="/cloud/install?code=LP2">進入遊戲</a></div>
 				<div id="p3"><a class="btn" href="/cloud/install?code=LP3">進入遊戲</a></div>
+				<div id="p5"><a class="btn" href="/cloud/install?code=LP4">進入遊戲</a></div>
+				<div id="p6"><a class="btn" href="#">進入遊戲</a></div>
+				<!-- Online last: the five single-player games first, in release order -->
 				<div id="p4">
 					<a class="btn" href="/play-flash">進入遊戲</a>
 				</div>
-				<div id="p5"><a class="btn" href="/cloud/install?code=LP4">進入遊戲</a></div>
-				<div id="p6"><a class="btn" href="#">進入遊戲</a></div>
 			</div>
 			<div>
 				<a class="btn" id="dlall" href="#">下載全部遊戲</a>
@@ -126,6 +127,7 @@
 	}
 	#p6 .btn:hover { background: linear-gradient(to bottom, #F1592A 0%, #F47A25 30%, #F7941E 100%); }
 	#p6.locked { background-image: url("images/dlimg_prince6_gray.png"); }
+	#lic.lang-en .zh, #lic.lang-zh .en { display: none; }
 	#lic { position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: rgba(5,12,30,.72);
 		display: none; z-index: 80; }
 	#lic .box { position: absolute; left: 50%; top: 4%; width: 760px; max-width: 94%;
@@ -217,6 +219,35 @@
 		};
 
 		function t(key) { return (STR[LANG] || STR.zh)[key]; }
+		// 星夜重圓's set-up steps come from the server in English.  Each gets a short
+		// label for the card button (it holds about 12 characters) and a full one for
+		// the progress line, in the portal's language.
+		var ANDROID_STEPS = [
+			[/^Downloading|\d+\/\d+ MB$/, "Downloading", "下載中", "Downloading", "下載中"],
+			[/^Unpacking the command-line/, "Unpacking", "解壓中", "Unpacking Android tools", "正在解壓 Android 工具"],
+			[/^Installing (?!the game)/, "Installing SDK", "安裝 SDK", "Installing the Android SDK", "正在安裝 Android SDK"],
+			[/^Unpacking the game/, "Unpacking", "解壓中", "Unpacking the game data", "正在解壓遊戲資料"],
+			[/^Creating the Android/, "New device", "建立裝置", "Creating the Android 9 device", "正在建立 Android 9 裝置"],
+			[/^Building the local/, "Building", "建立遊戲", "Building the local copy of the game", "正在建立本機遊戲"],
+			[/^Starting the Android/, "Starting", "啟動模擬器", "Starting the Android emulator", "正在啟動 Android 模擬器"],
+			[/^Android is booting/, "Booting", "開機中", "Android is booting", "Android 開機中"],
+			[/^Installing the game/, "Installing", "安裝遊戲", "Installing the game", "正在安裝遊戲"],
+			[/^Copying the game data/, "Copying data", "複製資料", "Copying the game data into Android", "正在把遊戲資料複製到 Android"],
+			[/^Starting /, "Starting", "啟動遊戲", "Starting 星夜重圓", "正在啟動星夜重圓"],
+			[/^Playing/, "Playing", "遊戲中", "Playing", "遊戲中"],
+			[/^Ready/, "Ready", "準備完成", "Ready", "準備完成"]
+		];
+		function androidStep(phase, long) {
+			var zh = LANG !== "en", mb = /(\d+\/\d+ MB)/.exec(phase || "");
+			for (var i = 0; i < ANDROID_STEPS.length; i++) {
+				var s = ANDROID_STEPS[i];
+				if (s[0].test(phase || "")) {
+					var text = long ? (zh ? s[4] : s[3]) : (zh ? s[2] : s[1]);
+					return mb && (s[1] === "Downloading") ? text + " " + mb[1] : text;
+				}
+			}
+			return long ? phase : (phase || "").slice(0, 12);
+		}
 
 		// The line at the top of the page is server-rendered HTML, so it does not
 		// follow the launcher's language button by itself.
@@ -245,7 +276,7 @@
 			}
 			var one = state[code] || {};
 			if (one.downloading && one.android) {
-				return one.phase ? one.phase.slice(0, 22) : t("loading");
+				return one.phase ? androidStep(one.phase, false) : t("loading");
 			}
 			if (one.downloading) {
 				// "downloading 100%" while it writes a million files out tells the
@@ -275,7 +306,7 @@
 				var code = cards[id], one = state[code] || {};
 				if (one.downloading) {
 					var shown = (one.percent || 0) + "%";
-					if (one.android && one.phase) { shown = one.phase + " (" + shown + ")"; }
+					if (one.android && one.phase) { shown = androidStep(one.phase, true) + " (" + shown + ")"; }
 					if (one.phase === "unpack") { shown = t("unpacking"); }
 					else if (one.phase === "verify") { shown = t("verifying"); }
 					busy.push(code + " " + shown);
@@ -552,8 +583,10 @@
 					playAndroid();
 				});
 			};
+			var dlg = document.getElementById("lic");
+			dlg.className = LANG === "en" ? "lang-en" : "lang-zh";
 			var pre = document.getElementById("lictext");
-			pre.textContent = "Loading the licence text from Google ...";
+			pre.textContent = LANG === "en" ? "Loading the licence text from Google ..." : "正在從 Google 載入授權條款 …";
 			document.getElementById("lic").style.display = "block";
 			fetch("/web/api/reunion/licences").then(function (r) { return r.json(); })
 				.then(function (d) {
@@ -562,8 +595,10 @@
 						parts.push("==== " + l.id + " ====\n\n" + l.text);
 					});
 					pre.textContent = parts.join("\n\n\n") || "Could not load the licences.";
-					document.getElementById("licpk").textContent =
-						(d.packages || []).join(", ") + " (about " + (d.size_mb || "?") + " MB)";
+					var pk = (d.packages || []).join(", ") + (LANG === "en" ? " (about " : "（約 ")
+						+ (d.size_mb || "?") + (LANG === "en" ? " MB)" : " MB）");
+					Array.prototype.forEach.call(document.querySelectorAll(".licpk"),
+						function (el) { el.textContent = pk; });
 				})["catch"](function () {
 					pre.textContent = "Could not reach dl.google.com for the licence text.";
 				});
@@ -582,16 +617,25 @@
 	})();
 	</script>
 	<div id="lic"><div class="box">
+		<div class="en">
 		<h2>星夜重圓 needs the Android emulator</h2>
 		<p>星夜重圓 was only released for Android and iOS, so the launcher plays it in
 		Google's Android emulator.  It will download from dl.google.com into
-		<code>%LOCALAPPDATA%\Android\Sdk</code>: <span id="licpk"></span>.  Then it
+		<code>%LOCALAPPDATA%\Android\Sdk</code>: <span class="licpk"></span>.  Then it
 		fetches the game itself from the publisher's server.</p>
 		<p>Google's Android SDK licence terms below apply to those packages.  Nothing is
 		downloaded unless you accept them.</p>
+		</div>
+		<div class="zh">
+		<h2>星夜重圓需要 Android 模擬器</h2>
+		<p>星夜重圓只推出了 Android 及 iOS 版，所以啟動器會在 Google 的 Android 模擬器中執行它。
+		它會從 dl.google.com 下載到 <code>%LOCALAPPDATA%\Android\Sdk</code>：<span class="licpk"></span>，
+		然後從官方伺服器下載遊戲本身。</p>
+		<p>下面 Google 的 Android SDK 授權條款（英文原文）適用於這些套件。你接受之前不會下載任何東西。</p>
+		</div>
 		<pre id="lictext"></pre>
-		<div class="row2"><button id="licno">Decline</button>
-		<button class="yes" id="licyes">I accept the licence terms</button></div>
+		<div class="row2"><button id="licno"><span class="en">Decline</span><span class="zh">不接受</span></button>
+		<button class="yes" id="licyes"><span class="en">I accept the licence terms</span><span class="zh">我接受授權條款</span></button></div>
 	</div></div>
 	<div id="ver">portal 8</div>
 </body>
