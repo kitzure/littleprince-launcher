@@ -13,7 +13,13 @@ setlocal
 cd /d "%~dp0"
 title Little Prince Launcher
 
-:: -- find a windowless Python ----------------------------------------------
+:: -- the launcher exe, when this folder has it --------------------------------
+if exist "%~dp0Little Prince Launcher.exe" (
+    start "" "%~dp0Little Prince Launcher.exe"
+    exit /b 0
+)
+
+:: -- otherwise the older Tk window: find a windowless Python ----------------
 set "PY="
 for /f "delims=" %%p in ('where pythonw.exe 2^>nul') do if not defined PY set "PY=%%p"
 if not defined PY for /f "delims=" %%p in ('where pyw.exe 2^>nul') do if not defined PY set "PY=%%p"

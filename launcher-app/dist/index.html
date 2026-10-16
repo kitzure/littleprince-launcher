@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>Little Prince Launcher</title>
+<style>
+  html, body { margin: 0; height: 100%; font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; }
+  body {
+    background: linear-gradient(#59b7f0 0%, #9fd8fb 55%, #e6f6ff 100%);
+    display: flex; align-items: center; justify-content: center; color: #1f4f80;
+    overflow: hidden;
+  }
+  .cloud { position: absolute; background: #fff; border-radius: 999px; opacity: .85; }
+  .card {
+    background: #fffdf6; border: 4px solid #fff; border-radius: 28px; padding: 36px 56px;
+    box-shadow: 0 10px 0 #4d9fd6, 0 18px 40px rgba(30, 80, 130, .25); text-align: center;
+  }
+  h1 { margin: 0 0 6px; font-size: 30px; color: #2a6bb0; }
+  p { margin: 6px 0 0; font-size: 15px; color: #4a7aa5; }
+  .dots span { display: inline-block; width: 10px; height: 10px; margin: 18px 4px 0;
+               border-radius: 50%; background: #f5b82e; animation: hop 1s infinite; }
+  .dots span:nth-child(2) { animation-delay: .15s; } .dots span:nth-child(3) { animation-delay: .3s; }
+  @keyframes hop { 0%, 60%, 100% { transform: none; } 30% { transform: translateY(-8px); } }
+  .err { color: #b8432f; display: none; }
+</style>
+</head>
+<body>
+<div class="cloud" style="width:220px;height:70px;left:8%;top:14%"></div>
+<div class="cloud" style="width:300px;height:90px;right:6%;top:22%"></div>
+<div class="cloud" style="width:180px;height:60px;left:22%;bottom:16%"></div>
+<div class="card">
+  <h1>星願小王子 啟動器</h1>
+  <p>Little Prince Launcher</p>
+  <div class="dots"><span></span><span></span><span></span></div>
+  <p id="msg">正在啟動伺服器… Starting the local server…</p>
+  <p class="err" id="err">伺服器沒有回應。請查看 logs\launcher.log<br>The local server did not answer - see logs\launcher.log</p>
+</div>
+<script>
+  // The exe puts the Python side's port in window.__LP_PORT; the real screens are
+  // served from there, so wait until it answers and then go to it.
+  (function () {
+    var port = window.__LP_PORT, started = Date.now();
+    function tryIt() {
+      fetch("http://127.0.0.1:" + port + "/api/ping", { mode: "no-cors", cache: "no-store" })
+        .then(function () { location.replace("http://127.0.0.1:" + port + "/"); })
+        .catch(function () {
+          if (Date.now() - started > 45000) {
+            document.getElementById("err").style.display = "block";
+            document.getElementById("msg").style.display = "none";
+          }
+          setTimeout(tryIt, 300);
+        });
+    }
+    if (port) { tryIt(); } else { document.getElementById("err").style.display = "block"; }
+  })();
+</script>
+</body>
+</html>

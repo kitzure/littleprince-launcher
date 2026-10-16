@@ -23,6 +23,25 @@ a launcher for a game created in 2006 which supports as below:
 - Local Multiplayer function for LPO (some of the minigames)
 - Mod selection for each games
 
+## The launcher window
+
+Unzip and run **Little Prince Launcher.exe** (or `Start.bat`), and answer Yes at
+Windows' administrator prompt. Python comes bundled - nothing else to install.
+Pick a game and press Play once: the launcher downloads the game and the
+publisher's game browser if they are missing, then opens the game.
+
+How it fits together:
+
+- `launcher-app/` - the exe (Tauri, Rust). It asks for admin rights, starts the
+  bundled Python, shows the window and stops the servers when it closes.
+- `launcher_web.py` - everything behind the window: the same servers, hosts
+  redirect and downloads the old Tk window (`Start_Server_GUI.pyw`) ran.
+- `launcher/ui/` - the screens: plain HTML/CSS/JS, served by `launcher_web.py`.
+  Edit them and reopen the launcher - no rebuild needed.
+- `tools/build_launcher.py` - builds the release zip: the exe, the embeddable
+  Python from python.org with Pillow, and the package. Needs Rust; with Rust's
+  GNU toolchain also a MinGW-w64 `bin` folder (for `dlltool`).
+
 ## Disclaimer
 
 This is an unofficial project for educational and game preservation purposes.
