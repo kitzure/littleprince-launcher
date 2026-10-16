@@ -216,7 +216,7 @@ def highest_rank(p, gid, lv):
 def ajax(name, f, db):
     """One php/Ajax call -> (reply dict or text, db changed)."""
     ok = {"Success": True}
-    uid = f.get("ID") or f.get("UserID")
+    uid = f.get("ID") or f.get("UserID") or f.get("OldID")      # register sends OldID
     p = _by_id(db, uid) if uid not in (None, "", "null") else None
 
     if name == "GetVersionNum":
@@ -270,20 +270,36 @@ def ajax(name, f, db):
         return _user_reply(p), True
     if name == "CheckRepeated":
         typ = f.get("Type")
-        lid = _by_login(db, f.get("LoginID")) if f.get("LoginID") else None
-        em = _by_login(db, f.get("Email")) if f.get("Email") else None
+        accounts = _HOOKS.get("accounts")
+        # A name or email the launcher already has is taken too: registering in the
+        # game makes a launcher account (InsertUserDeviceBinding below).
+        lid = (_by_login(db, f.get("LoginID")) or (accounts and accounts.get_by_login(
+            f.get("LoginID")))) if f.get("LoginID") else None
+        em = (_by_login(db, f.get("Email")) or (accounts and accounts.get(
+            f.get("Email")))) if f.get("Email") else None
         if typ == "All":
             state = "All" if lid and em else "LoginID" if lid else "Email" if em else "NotRepeated"
         else:
             state = "Repeated" if (lid if typ == "LoginID" else em) else "NotRepeated"
         return dict(ok, State=state), False
     if name == "GetUserData":                               # binding: look up another account
-        q = _by_login(db, f.get("Acc"))
-        if not q or not q.get("Password") or \
-                _pw_hash(f.get("Pw") or "", q["Password"]["salt"]) != q["Password"]:
-            return dict(ok, State="Fail"), False
+        acc, pw = (f.get("Acc") or "").strip(), f.get("Pw") or ""
+        # 綁定帳號 with a launcher account (login name or email, as on the accounts
+        # page): bind to that account's own 星夜重圓 save.
+        accounts = _HOOKS.get("accounts")
+        acct = accounts.verify(acc, pw, touch=False) if (accounts and acc and pw) else None
+        changed = False
+        if acct:
+            q = account_player(db, acct, create=True)
+            q["Password"] = _pw_hash(pw)
+            changed = True
+        else:
+            q = _by_login(db, acc)
+            if not q or not q.get("Password") or \
+                    _pw_hash(pw, q["Password"]["salt"]) != q["Password"]:
+                return dict(ok, State="Fail"), False
         return dict(ok, State="Success", ID=str(q["ID"]), Name=q["Name"], Gold=str(q["Gold"]),
-                    Staratom=str(q["Staratom"]), Stones=_pipe(q["Stones"])), False
+                    Staratom=str(q["Staratom"]), Stones=_pipe(q["Stones"])), changed
 
     if p is None:
         return {"Success": False, "Error": "no such local player"}, False
@@ -291,10 +307,25 @@ def ajax(name, f, db):
     if name == "InsertUserDeviceBinding":
         if f.get("Type") == "Create":                       # this device player -> an account
             login = (f.get("LoginName") or "").strip()
+            pw, email = f.get("Password") or "", (f.get("Email") or "").strip()
+            # Registering in the game makes a launcher account as well, so the same
+            # name and password sign in to LP1-LP4, Online and the accounts page.
+            accounts = _HOOKS.get("accounts")
+            if accounts and login and email:
+                try:
+                    acct = accounts.create(email, pw, dict(_HOOKS.get("default_profile") or {}),
+                                           name=login, login_name=login)
+                    p["AccountEmail"] = acct["email"]
+                    log("  lp5: registered %s (%s) - a launcher account too" % (login, email))
+                except ValueError as exc:
+                    # The game reads NewID without looking at State, so a refusal
+                    # would leave it stuck: keep the player local and say why.
+                    log("  lp5: %s stays a local 星夜重圓 player - no launcher account: %s"
+                        % (login, exc))
             if login and not _by_login(db, login):
                 p["LoginID"] = p["Name"] = login
-                p["Password"] = _pw_hash(f.get("Password") or "")
-                p["Email"] = f.get("Email") or "null"
+                p["Password"] = _pw_hash(pw)
+                p["Email"] = email or "null"
             return dict(ok, State="Success", NewID=str(p["ID"])), True
         q = _by_id(db, f.get("ID"))                         # Link: this device -> that account
         if q:

@@ -4538,7 +4538,7 @@ def resolve_login_account(typed: str):
 # 星願思語 logs in through the same accounts and the same name rules as the others
 lp4.configure(log=log.info, accounts=accounts, resolve=resolve_login_account,
               default_profile=DEFAULT_PROFILE)
-lp5.configure(log=log.info, accounts=accounts)
+lp5.configure(log=log.info, accounts=accounts, default_profile=DEFAULT_PROFILE)
 lp5_android.configure(log=log.info)
 
 

@@ -171,21 +171,45 @@ def accept_licences(texts):
 
 # ─── downloads ───────────────────────────────────────────────────────────────
 
-def _download(url, target, label, lo, hi, sha1=None, timeout=120):
-    """Fetch `url` into `target` (via .part), reporting lo..hi percent."""
-    target.parent.mkdir(parents=True, exist_ok=True)
-    part = target.with_name(target.name + ".part")
+_RESOLVED = {}
+
+
+def _request(url, method="GET"):
+    """A request for `url` that also works with the hosts redirect on: the
+    publisher's name then points at this PC, and the "download" was the local
+    server's own page ("File is not a zip file") - so go to the real address and
+    keep the Host header."""
     headers = {"User-Agent": UA}
-    # With the hosts redirect on, the publisher's name points at this PC and the
-    # "download" was the local server's own page - "File is not a zip file".
-    # Fetch from the real address instead, keeping the Host header.
     if resolve_base:
         split = urllib.parse.urlsplit(url)
-        base, host = resolve_base("%s://%s/" % (split.scheme, split.netloc), log=log)
+        origin = "%s://%s/" % (split.scheme, split.netloc)
+        if origin not in _RESOLVED:                 # once per host, not per file
+            _RESOLVED[origin] = resolve_base(origin, log=log)
+        base, host = _RESOLVED[origin]
         if host:
             url = base.rstrip("/") + split.path + ("?" + split.query if split.query else "")
             headers["Host"] = host
-    req = urllib.request.Request(url, headers=headers)
+    return urllib.request.Request(url, headers=headers, method=method)
+
+
+def _size_of(url):
+    try:
+        with urllib.request.urlopen(_request(url, "HEAD"), timeout=30) as r:
+            return int(r.headers.get("Content-Length") or 0)
+    except Exception:                                                 # noqa: BLE001
+        return 0
+
+
+def _download(url, target, label, lo, hi, sha1=None, timeout=120, tally=None):
+    """Fetch `url` into `target` (via .part), reporting lo..hi percent.
+
+    With `tally` ({"done", "total", "lo", "hi"} in bytes and percent) the bar
+    counts every file of one batch together - one total instead of a new
+    "x/y MB" for each file."""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    part = target.with_name(target.name + ".part")
+    req = _request(url)
+    url = req.full_url
     digest = hashlib.sha1()
     with urllib.request.urlopen(req, timeout=timeout) as r, open(part, "wb") as fh:
         total = int(r.headers.get("Content-Length") or 0)
@@ -197,7 +221,11 @@ def _download(url, target, label, lo, hi, sha1=None, timeout=120):
             fh.write(chunk)
             digest.update(chunk)
             got += len(chunk)
-            if total:
+            if tally and tally["total"]:
+                done = tally["done"] + got
+                _phase("Downloading the game %d/%d MB" % (done >> 20, tally["total"] >> 20),
+                       tally["lo"] + (tally["hi"] - tally["lo"]) * min(1, done / tally["total"]))
+            elif total:
                 _phase("%s %d/%d MB" % (label, got >> 20, total >> 20),
                        lo + (hi - lo) * got / total)
     if total and got != total:
@@ -208,6 +236,8 @@ def _download(url, target, label, lo, hi, sha1=None, timeout=120):
         part.unlink(missing_ok=True)
         raise IOError("%s: the server sent something that is not the file (%s)" % (label, url))
     part.replace(target)
+    if tally is not None:
+        tally["done"] += got
 
 
 def _cmdline_tools(lo, hi):
@@ -284,28 +314,34 @@ def _write_avd():
 
 
 def _game_files(lo, hi):
+    """The APK, the OBB and the 29 level bundles - counted as one download."""
     apk = DOWNLOADS / "com.Starwish.LP1.apk"
-    if not apk.is_file():
-        _download(PUBLISHER + "com.Starwish.LP1.apk", apk, "The game (APK)", lo, lo + 8)
     obb = DOWNLOADS / OBB
+    zpath = DOWNLOADS / "com.Starwish.LP1.zip"
+    todo = []
+    if not apk.is_file():
+        todo.append((PUBLISHER + "com.Starwish.LP1.apk", apk, "The game (APK)", 120))
+    if not obb.is_file() and not zpath.is_file():
+        todo.append((PUBLISHER + "com.Starwish.LP1.zip", zpath, "Game data (OBB)", 300))
+    for n in lp5.BUNDLE_NAMES:
+        if not (lp5.BUNDLES / (n + ".unity3d")).is_file():
+            todo.append((BUNDLE_ORIGIN + n + ".unity3d", lp5.BUNDLES / (n + ".unity3d"),
+                         "Level %s" % n, 600))
+    if todo:
+        _phase("Working out the download size", lo)
+        total = sum(_size_of(url) for url, _t, _l, _to in todo)
+        log("downloading %d game files, %d MB in all" % (len(todo), total >> 20))
+        tally = {"done": 0, "total": total, "lo": lo, "hi": hi - 2}
+        for url, target, label, timeout in todo:
+            _download(url, target, label, lo, hi - 2, timeout=timeout, tally=tally)
     if not obb.is_file():
-        zpath = DOWNLOADS / "com.Starwish.LP1.zip"
-        if not zpath.is_file():
-            _download(PUBLISHER + "com.Starwish.LP1.zip", zpath, "Game data (OBB)",
-                      lo + 8, lo + 40, timeout=300)
-        _phase("Unpacking the game data", lo + 40)
+        _phase("Unpacking the game data", hi - 1)
         with zipfile.ZipFile(zpath) as zf:
             member = next(n for n in zf.namelist() if n.endswith(OBB))
             with zf.open(member) as src, open(str(obb) + ".part", "wb") as dst:
                 shutil.copyfileobj(src, dst, 1 << 20)
         Path(str(obb) + ".part").replace(obb)
         zpath.unlink()
-    names = [n for n in lp5.BUNDLE_NAMES if not (lp5.BUNDLES / (n + ".unity3d")).is_file()]
-    for i, n in enumerate(names):
-        span = (hi - lo - 42) / max(1, len(names))
-        _download(BUNDLE_ORIGIN + n + ".unity3d", lp5.BUNDLES / (n + ".unity3d"),
-                  "Level %s (%d of %d)" % (n, i + 1, len(names)),
-                  lo + 42 + span * i, lo + 42 + span * (i + 1), timeout=600)
 
 
 def setup(port=None):
