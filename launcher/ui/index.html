@@ -31,7 +31,6 @@
   <main class="stage">
     <section class="banner" id="banner">
       <div class="art">
-        <div class="blur" id="blur"></div>
         <img id="hero" alt="">
         <div class="badge" id="state"></div>
       </div>
@@ -53,12 +52,23 @@
   </main>
 </div>
 
+<!-- the accounts page and the mods, inside the window -->
+<section class="sheet hide" id="sheet">
+  <div class="sheet-head">
+    <button id="sheetBack"><span data-t="back">返回</span></button>
+    <b id="sheetTitle"></b>
+    <span class="grow"></span>
+    <button id="sheetReload" class="secondary" data-t="reload">重新載入</button>
+  </div>
+  <iframe id="sheetFrame" title="page"></iframe>
+</section>
+
 <!-- bottom: everything else -->
 <footer class="dock">
   <div class="hills" aria-hidden="true"></div>
   <div class="buttons">
-    <button data-open="accounts"><i class="ic ic-user"></i><span data-t="accounts">帳戶設定</span></button>
-    <button data-open="mods"><i class="ic ic-star"></i><span data-t="mods">模組</span></button>
+    <button data-sheet="accounts"><i class="ic ic-user"></i><span data-t="accounts">帳戶設定</span></button>
+    <button data-sheet="mods"><i class="ic ic-star"></i><span data-t="mods">模組</span></button>
     <button id="settingsBtn"><i class="ic ic-gear"></i><span data-t="settings">設定</span></button>
     <button id="logBtn"><i class="ic ic-scroll"></i><span data-t="log">紀錄</span></button>
   </div>

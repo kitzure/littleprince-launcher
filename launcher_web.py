@@ -456,6 +456,9 @@ class Launcher:
             "toasts": list(self.prompts.toasts),
             "task": self.ui.task,
             "playing": sorted(self.playing),
+            # where the accounts page and the mods live (shown inside the window)
+            "game_base": "http://127.0.0.1:%d" % (b.online_srv.port if b.online_srv is not None
+                                                  else b.online_port),
         }
 
     def quit(self):

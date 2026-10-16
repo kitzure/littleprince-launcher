@@ -21,6 +21,7 @@
       lic_text: "星夜重圓只有 Android / iOS 版，所以啟動器會在 Google 的 Android 模擬器中執行它。它會從 dl.google.com 下載：%p。下面 Google 的授權條款（英文原文）適用於這些套件。你接受之前不會下載任何東西。",
       lic_yes: "我接受授權條款", lic_no: "不接受", lic_loading: "正在從 Google 載入授權條款…",
       admin_no: "沒有管理員權限：LP1–LP3 的登入需要 hosts 重新導向。",
+      back: "返回", reload: "重新載入",
       lp5_note: "星願小王子的手機版 — 在 Android 模擬器中執行",
     },
     en: {
@@ -37,6 +38,7 @@
       lic_text: "星夜重圓 only exists for Android and iOS, so the launcher runs it in Google's Android emulator. It downloads from dl.google.com: %p. Google's licence below applies to those packages. Nothing is downloaded until you accept.",
       lic_yes: "I accept the licence", lic_no: "Decline", lic_loading: "Loading the licence text from Google…",
       admin_no: "Not running as administrator: LP1-LP3 logins need the hosts redirect.",
+      back: "Back", reload: "Reload",
       lp5_note: "星願小王子 on phones - runs in the Android emulator",
     },
   };
@@ -123,7 +125,6 @@
         }, 120);
       }
     }
-    $("blur").style.backgroundImage = "url(" + g.banner + ")";
     $("title").textContent = g.name;
     $("sub").textContent = g.code === "LP5" ? t("lp5_note") : g.sub;
     var c = S.cloud[g.code] || {};
@@ -267,6 +268,32 @@
   };
   $("veil").addEventListener("click", function (e) { if (e.target === $("veil") && !S.openPrompt) { closeModal(); } });
 
+  // ── the accounts page and the mods, inside the window ────────────────────
+  var SHEETS = { accounts: "/web", mods: "/mods" };
+  function openSheet(kind) {
+    var base = (S.lastState && S.lastState.game_base) || "http://127.0.0.1:8080";
+    $("sheetTitle").textContent = t(kind);
+    var url = base + SHEETS[kind];
+    if ($("sheetFrame").getAttribute("data-kind") !== kind) {
+      $("sheetFrame").setAttribute("data-kind", kind);
+      $("sheetFrame").src = url;
+    }
+    $("sheet").classList.remove("hide");
+    $("drawer").classList.add("hide"); $("serverPop").classList.add("hide");
+  }
+  function closeSheet() { $("sheet").classList.add("hide"); }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-sheet]"), function (b) {
+    b.onclick = function () {
+      var kind = b.getAttribute("data-sheet");
+      if (!$("sheet").classList.contains("hide") && $("sheetFrame").getAttribute("data-kind") === kind) {
+        return closeSheet();
+      }
+      openSheet(kind);
+    };
+  });
+  $("sheetBack").onclick = closeSheet;
+  $("sheetReload").onclick = function () { $("sheetFrame").src = $("sheetFrame").src; };
+
   // ── dock, server, log ────────────────────────────────────────────────────
   Array.prototype.forEach.call(document.querySelectorAll("[data-open]"), function (b) {
     b.onclick = function () { api("/api/open", { what: b.getAttribute("data-open") }); };
@@ -279,7 +306,7 @@
                                       var l = $("log"); l.scrollTop = l.scrollHeight; };
   $("drawerClose").onclick = function () { $("drawer").classList.add("hide"); };
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") { $("drawer").classList.add("hide"); $("serverPop").classList.add("hide");
+    if (e.key === "Escape") { $("drawer").classList.add("hide"); $("serverPop").classList.add("hide"); closeSheet();
                               if (!S.openPrompt) { closeModal(); } }
   });
 

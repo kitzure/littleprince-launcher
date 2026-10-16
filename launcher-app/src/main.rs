@@ -207,8 +207,10 @@ fn main() {
         .setup(move |app| {
             WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                 .title(TITLE)
-                .inner_size(1180.0, 720.0)
-                .min_inner_size(960.0, 600.0)
+                // a fixed size: the banner box is laid out for exactly this
+                .inner_size(1200.0, 700.0)
+                .resizable(false)
+                .maximizable(false)
                 .center()
                 .initialization_script(&format!("window.__LP_PORT = {};", port))
                 .build()?;
